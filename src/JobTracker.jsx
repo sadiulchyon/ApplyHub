@@ -31,7 +31,7 @@ const COLS = [
 
 const DEFAULT_WIDTHS = { position: 190, advertiser: 150, comments: 210, excitement: 108, deadline: 130, status: 112, actions: 80 };
 
-function Stars({ value, onChange }) {
+function Stars({ value, onChange, size = 22 }) {
   const [hovered, setHovered] = useState(null);
   const active = hovered ?? value;
   return (
@@ -42,7 +42,7 @@ function Stars({ value, onChange }) {
           onClick={() => onChange(value === n ? 0 : n)}
           onMouseEnter={() => setHovered(n)}
           onMouseLeave={() => setHovered(null)}
-          style={{ cursor: "pointer", fontSize: 22, color: n <= active ? "#fbbf24" : "#2d3148", transition: "color 0.1s", userSelect: "none" }}
+          style={{ cursor: "pointer", fontSize: size, color: n <= active ? "#fbbf24" : "#2d3148", transition: "color 0.1s", userSelect: "none" }}
         >★</span>
       ))}
     </div>
@@ -71,6 +71,8 @@ export default function JobTracker({ user }) {
   const [loading, setLoading] = useState(true);
   const [submitError, setSubmitError] = useState("");
   const [colWidths, setColWidths] = useState(DEFAULT_WIDTHS);
+  const [editingComments, setEditingComments] = useState(null);
+  const [commentDraft, setCommentDraft] = useState("");
   const [sortCol, setSortCol] = useState("deadline");
   const [sortDir, setSortDir] = useState("asc");
   const resizeRef = useRef(null);
@@ -94,6 +96,14 @@ export default function JobTracker({ user }) {
   const handleSort = (key) => {
     if (sortCol === key) setSortDir(d => d === "asc" ? "desc" : "asc");
     else { setSortCol(key); setSortDir("asc"); }
+  };
+
+  const updateField = async (id, field, value) => {
+    try {
+      await updateDoc(doc(db, "users", user.uid, "jobs", id), { [field]: value });
+    } catch (err) {
+      console.error("Inline update failed:", err);
+    }
   };
 
   // Reference to this user's jobs collection
@@ -191,6 +201,11 @@ export default function JobTracker({ user }) {
         .icon-btn-danger:hover { color: #f87171; border-color: #9f1239; background: #2d1515; }
         .col-header { cursor: pointer; user-select: none; }
         .col-header:hover { color: #c7d2fe; }
+        .status-select { border-radius: 20px; padding: 3px 6px 3px 12px; font-size: 11px; font-weight: 500; cursor: pointer; outline: none; font-family: inherit; }
+        .status-select:focus { box-shadow: 0 0 0 2px #6366f1; }
+        .comment-cell { cursor: text; min-height: 20px; border-radius: 4px; padding: 2px 4px; transition: background 0.15s; }
+        .comment-cell:hover { background: #1e2235; }
+        .comment-textarea { width: 100%; background: #0f1117; border: 1px solid #6366f1; border-radius: 6px; padding: 6px 8px; color: #e2e8f0; font-family: inherit; font-size: 12px; resize: vertical; min-height: 64px; outline: none; }
         .resize-handle { position: absolute; right: 0; top: 0; bottom: 0; width: 5px; cursor: col-resize; z-index: 1; }
         .resize-handle:hover, .resize-handle:active { background: #6366f1; opacity: 0.5; }
         thead th:not(:last-child) { border-right: 1px solid #2d3148; }
@@ -322,15 +337,26 @@ export default function JobTracker({ user }) {
                       <td style={{ padding: "14px 16px", fontSize: 13, color: "#94a3b8", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
                         {job.advertiser || <span style={{ color: "#2d3148" }}>—</span>}
                       </td>
-                      <td style={{ padding: "14px 16px", overflow: "hidden" }}>
-                        {job.comments
-                          ? <span style={{ fontSize: 12, color: "#94a3b8", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{job.comments}</span>
-                          : <span style={{ color: "#2d3148" }}>—</span>}
+                      <td style={{ padding: "10px 16px", overflow: "hidden" }}>
+                        {editingComments === job.id ? (
+                          <textarea
+                            autoFocus
+                            className="comment-textarea"
+                            value={commentDraft}
+                            onChange={e => setCommentDraft(e.target.value)}
+                            onBlur={() => { updateField(job.id, "comments", commentDraft); setEditingComments(null); }}
+                            onKeyDown={e => { if (e.key === "Escape") setEditingComments(null); }}
+                          />
+                        ) : (
+                          <div className="comment-cell" onClick={() => { setEditingComments(job.id); setCommentDraft(job.comments || ""); }}>
+                            {job.comments
+                              ? <span style={{ fontSize: 12, color: "#94a3b8", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{job.comments}</span>
+                              : <span style={{ fontSize: 12, color: "#2d3148" }}>Click to add…</span>}
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: "14px 16px", whiteSpace: "nowrap" }}>
-                        {[1,2,3,4,5].map(n => (
-                          <span key={n} style={{ fontSize: 15, color: n <= (job.excitement || 0) ? "#fbbf24" : "#2d3148" }}>★</span>
-                        ))}
+                        <Stars value={job.excitement || 0} onChange={v => updateField(job.id, "excitement", v)} size={16} />
                       </td>
                       <td style={{ padding: "14px 16px", overflow: "hidden" }}>
                         {job.deadline ? (
@@ -341,9 +367,14 @@ export default function JobTracker({ user }) {
                         ) : <span style={{ color: "#2d3148" }}>—</span>}
                       </td>
                       <td style={{ padding: "14px 16px" }}>
-                        <span style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}`, borderRadius: 20, padding: "3px 12px", fontSize: 11, fontWeight: 500, whiteSpace: "nowrap" }}>
-                          {job.status}
-                        </span>
+                        <select
+                          className="status-select"
+                          value={job.status}
+                          onChange={e => updateField(job.id, "status", e.target.value)}
+                          style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}
+                        >
+                          {STATUSES.map(st => <option key={st} value={st}>{st}</option>)}
+                        </select>
                       </td>
                       <td style={{ padding: "14px 16px", textAlign: "right", whiteSpace: "nowrap" }}>
                         <button title="Edit" className="icon-btn" onClick={() => handleEdit(job)}>
