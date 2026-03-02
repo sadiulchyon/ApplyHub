@@ -76,6 +76,7 @@ export default function JobTracker({ user }) {
   const [sortCol, setSortCol] = useState("deadline");
   const [sortDir, setSortDir] = useState("asc");
   const resizeRef = useRef(null);
+  const seededRef = useRef(false);
 
   const startResize = (e, key) => {
     e.preventDefault();
@@ -109,15 +110,37 @@ export default function JobTracker({ user }) {
   // Reference to this user's jobs collection
   const userJobsRef = collection(db, "users", user.uid, "jobs");
 
-  // Real-time listener — only this user's data
+  // Real-time listener — seeds example jobs for first-time users
   useEffect(() => {
     const q = query(userJobsRef, orderBy("createdAt", "desc"));
+    const storageKey = `applyhub_seeded_${user.uid}`;
     const unsub = onSnapshot(q, (snap) => {
       setJobs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       setLoading(false);
+      if (!seededRef.current && snap.empty && !localStorage.getItem(storageKey)) {
+        seededRef.current = true;
+        localStorage.setItem(storageKey, "1");
+        const ds = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().split("T")[0]; };
+        const samples = [
+          { position: "Remote Sensing Intern", advertiser: "NASA Goddard Space Flight Center", url: "", deadline: ds(23), status: "Bookmarked", excitement: 4, comments: "Focuses on land surface hydrology using MODIS and Landsat — strong fit. Check their current research group before applying.", isSample: true },
+          { position: "Water Resources Analyst", advertiser: "USGS", url: "", deadline: ds(-1), status: "Applied", excitement: 5, comments: "Applied via USAJobs. Role involves streamflow modelling and satellite-derived ET. Follow up by end of week.", isSample: true },
+          { position: "GIS & Hydrological Modelling Specialist", advertiser: "Deltares", url: "", deadline: ds(8), status: "Interview", excitement: 3, comments: "Video interview Thursday. They use SOBEK and Delft3D — review before call. Ask about remote work flexibility.", isSample: true },
+          { position: "Postdoctoral Fellow – SAR & Flood Mapping", advertiser: "TU Delft", url: "", deadline: ds(5), status: "Offer", excitement: 5, comments: "2-year position with competitive stipend. Offer expires soon — compare with Deltares role before deciding.", isSample: true },
+          { position: "Earth Observation Data Scientist", advertiser: "Planet Labs", url: "", deadline: ds(-47), status: "Rejected", excitement: 2, comments: "Requested feedback after rejection — suggested stronger ML background. Good experience overall.", isSample: true },
+        ];
+        Promise.all(samples.map(s => addDoc(userJobsRef, { ...s, createdAt: serverTimestamp() })));
+      }
     });
     return () => unsub();
   }, [user.uid]);
+
+  const hasSamples = jobs.some(j => j.isSample);
+
+  const clearSamples = async () => {
+    await Promise.all(
+      jobs.filter(j => j.isSample).map(j => deleteDoc(doc(db, "users", user.uid, "jobs", j.id)))
+    );
+  };
 
   const handleSubmit = async () => {
     if (!form.position.trim()) return;
@@ -291,6 +314,14 @@ export default function JobTracker({ user }) {
             <button key={s} className={`filter-btn ${filterStatus === s ? "active" : ""}`} onClick={() => setFilterStatus(s)}>{s}</button>
           ))}
         </div>
+
+        {/* Sample banner */}
+        {hasSamples && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#1a1d2e", border: "1px solid #3730a3", borderRadius: 8, padding: "10px 16px", marginBottom: 16, gap: 12 }}>
+            <span style={{ fontSize: 12, color: "#a5b4fc" }}>✦ These are example entries to help you explore the tracker — try editing them inline, then clear them when you're ready to start for real.</span>
+            <button className="btn-ghost" style={{ whiteSpace: "nowrap", color: "#818cf8", borderColor: "#3730a3", flexShrink: 0 }} onClick={clearSamples}>Clear examples</button>
+          </div>
+        )}
 
         {/* Table */}
         <div style={{ background: "#161821", border: "1px solid #2d3148", borderRadius: 12, overflow: "auto" }}>
