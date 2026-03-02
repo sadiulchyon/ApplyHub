@@ -133,9 +133,12 @@ export default function JobTracker({ user }) {
         .filter-btn { background: transparent; border: 1px solid #2d3148; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-family: inherit; font-size: 12px; color: #94a3b8; transition: all 0.2s; }
         .filter-btn.active { background: #6366f1; color: #fff; border-color: #6366f1; }
         .filter-btn:hover:not(.active) { border-color: #6366f1; color: #e2e8f0; }
+        .icon-btn { background: transparent; border: 1px solid #2d3148; color: #94a3b8; cursor: pointer; border-radius: 6px; padding: 6px 7px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; margin-left: 6px; }
+        .icon-btn:hover { color: #e2e8f0; border-color: #6366f1; background: #1a1d2e; }
+        .icon-btn-danger:hover { color: #f87171; border-color: #9f1239; background: #2d1515; }
       `}</style>
 
-      <div style={{ maxWidth: 900, margin: "0 auto" }}>
+      <div style={{ maxWidth: 1300, margin: "0 auto" }}>
         {/* Header */}
         <div style={{ marginBottom: 40, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div>
@@ -223,14 +226,14 @@ export default function JobTracker({ user }) {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid #2d3148" }}>
-                  {["Position", "Excitement", "Deadline", "Status", ""].map(h => (
+                  {["Position", "Advertiser", "Comments", "Excitement", "Deadline", "Status", ""].map(h => (
                     <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, color: "#64748b", fontWeight: 500, letterSpacing: "0.05em" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 && (
-                  <tr><td colSpan={5} style={{ padding: 40, textAlign: "center", color: "#64748b", fontSize: 13 }}>No applications yet.</td></tr>
+                  <tr><td colSpan={7} style={{ padding: 40, textAlign: "center", color: "#64748b", fontSize: 13 }}>No applications yet.</td></tr>
                 )}
                 {filtered.map((job, i) => {
                   const s = STATUS_STYLES[job.status];
@@ -239,8 +242,15 @@ export default function JobTracker({ user }) {
                     <tr key={job.id} className="row-hover" style={{ borderBottom: i < filtered.length - 1 ? "1px solid #1e2235" : "none", transition: "background 0.15s" }}>
                       <td style={{ padding: "14px 16px" }}>
                         <div style={{ fontSize: 14, color: "#e2e8f0", fontWeight: 500 }}>{job.position}</div>
-                        {job.advertiser && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{job.advertiser}</div>}
                         {job.url && <a href={job.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: "#6366f1", textDecoration: "none", opacity: 0.8 }}>View posting ↗</a>}
+                      </td>
+                      <td style={{ padding: "14px 16px", fontSize: 13, color: "#94a3b8" }}>
+                        {job.advertiser || <span style={{ color: "#2d3148" }}>—</span>}
+                      </td>
+                      <td style={{ padding: "14px 16px", maxWidth: 220 }}>
+                        {job.comments
+                          ? <span style={{ fontSize: 12, color: "#94a3b8", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{job.comments}</span>
+                          : <span style={{ color: "#2d3148" }}>—</span>}
                       </td>
                       <td style={{ padding: "14px 16px", whiteSpace: "nowrap" }}>
                         {[1,2,3,4,5].map(n => (
@@ -261,8 +271,12 @@ export default function JobTracker({ user }) {
                         </span>
                       </td>
                       <td style={{ padding: "14px 16px", textAlign: "right", whiteSpace: "nowrap" }}>
-                        <button className="btn-ghost" style={{ marginRight: 6 }} onClick={() => handleEdit(job)}>Edit</button>
-                        <button className="btn-danger" onClick={() => handleDelete(job.id)}>Delete</button>
+                        <button title="Edit" className="icon-btn" onClick={() => handleEdit(job)}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                        <button title="Delete" className="icon-btn icon-btn-danger" onClick={() => handleDelete(job.id)}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                        </button>
                       </td>
                     </tr>
                   );
