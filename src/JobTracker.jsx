@@ -1,5 +1,5 @@
 // src/JobTracker.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { auth, db } from "./firebase";
 import { signOut } from "firebase/auth";
 import {
@@ -18,6 +18,18 @@ const STATUS_STYLES = {
 };
 
 const emptyForm = { position: "", advertiser: "", url: "", deadline: "", status: "Bookmarked", excitement: 0, comments: "" };
+
+const COLS = [
+  { key: "position",   label: "Position" },
+  { key: "advertiser", label: "Advertiser" },
+  { key: "comments",   label: "Comments" },
+  { key: "excitement", label: "Excitement" },
+  { key: "deadline",   label: "Deadline" },
+  { key: "status",     label: "Status" },
+  { key: "actions",    label: "", sortable: false },
+];
+
+const DEFAULT_WIDTHS = { position: 190, advertiser: 150, comments: 210, excitement: 108, deadline: 130, status: 112, actions: 80 };
 
 function Stars({ value, onChange }) {
   const [hovered, setHovered] = useState(null);
@@ -58,6 +70,31 @@ export default function JobTracker({ user }) {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitError, setSubmitError] = useState("");
+  const [colWidths, setColWidths] = useState(DEFAULT_WIDTHS);
+  const [sortCol, setSortCol] = useState(null);
+  const [sortDir, setSortDir] = useState("asc");
+  const resizeRef = useRef(null);
+
+  const startResize = (e, key) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resizeRef.current = { key, startX: e.clientX, startW: colWidths[key] };
+    const onMove = (ev) => {
+      const delta = ev.clientX - resizeRef.current.startX;
+      setColWidths(prev => ({ ...prev, [resizeRef.current.key]: Math.max(60, resizeRef.current.startW + delta) }));
+    };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  };
+
+  const handleSort = (key) => {
+    if (sortCol === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortCol(key); setSortDir("asc"); }
+  };
 
   // Reference to this user's jobs collection
   const userJobsRef = collection(db, "users", user.uid, "jobs");
@@ -117,6 +154,18 @@ export default function JobTracker({ user }) {
   const filtered = filterStatus === "All" ? jobs : jobs.filter(j => j.status === filterStatus);
   const counts = STATUSES.reduce((acc, s) => { acc[s] = jobs.filter(j => j.status === s).length; return acc; }, {});
 
+  const sorted = [...filtered].sort((a, b) => {
+    if (!sortCol) return 0;
+    let av = a[sortCol] ?? "", bv = b[sortCol] ?? "";
+    if (sortCol === "excitement") return sortDir === "asc" ? (av||0)-(bv||0) : (bv||0)-(av||0);
+    if (sortCol === "deadline") {
+      av = av ? new Date(av).getTime() : 0;
+      bv = bv ? new Date(bv).getTime() : 0;
+      return sortDir === "asc" ? av - bv : bv - av;
+    }
+    return sortDir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+  });
+
   return (
     <div style={{ minHeight: "100vh", background: "#0f1117", fontFamily: "'DM Mono', 'Courier New', monospace", color: "#e2e8f0", padding: "40px 24px" }}>
       <style>{`
@@ -136,6 +185,10 @@ export default function JobTracker({ user }) {
         .icon-btn { background: transparent; border: 1px solid #2d3148; color: #94a3b8; cursor: pointer; border-radius: 6px; padding: 6px 7px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; margin-left: 6px; }
         .icon-btn:hover { color: #e2e8f0; border-color: #6366f1; background: #1a1d2e; }
         .icon-btn-danger:hover { color: #f87171; border-color: #9f1239; background: #2d1515; }
+        .col-header { cursor: pointer; user-select: none; }
+        .col-header:hover { color: #c7d2fe; }
+        .resize-handle { position: absolute; right: 0; top: 0; bottom: 0; width: 5px; cursor: col-resize; z-index: 1; }
+        .resize-handle:hover, .resize-handle:active { background: #6366f1; opacity: 0.5; }
       `}</style>
 
       <div style={{ maxWidth: 1300, margin: "0 auto" }}>
@@ -219,35 +272,51 @@ export default function JobTracker({ user }) {
         </div>
 
         {/* Table */}
-        <div style={{ background: "#161821", border: "1px solid #2d3148", borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ background: "#161821", border: "1px solid #2d3148", borderRadius: 12, overflow: "auto" }}>
           {loading ? (
             <div style={{ padding: 40, textAlign: "center", color: "#64748b", fontSize: 13 }}>Loading...</div>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+              <colgroup>
+                {COLS.map(c => <col key={c.key} style={{ width: colWidths[c.key] }} />)}
+              </colgroup>
               <thead>
                 <tr style={{ borderBottom: "1px solid #2d3148" }}>
-                  {["Position", "Advertiser", "Comments", "Excitement", "Deadline", "Status", ""].map(h => (
-                    <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, color: "#64748b", fontWeight: 500, letterSpacing: "0.05em" }}>{h}</th>
+                  {COLS.map(c => (
+                    <th
+                      key={c.key}
+                      className={c.sortable !== false ? "col-header" : ""}
+                      onClick={() => c.sortable !== false && handleSort(c.key)}
+                      style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, fontWeight: 500, letterSpacing: "0.05em", position: "relative", color: sortCol === c.key ? "#818cf8" : "#64748b" }}
+                    >
+                      {c.label}
+                      {sortCol === c.key && (
+                        <span style={{ marginLeft: 4 }}>{sortDir === "asc" ? "↑" : "↓"}</span>
+                      )}
+                      {c.key !== "actions" && (
+                        <div className="resize-handle" onMouseDown={e => startResize(e, c.key)} onClick={e => e.stopPropagation()} />
+                      )}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 && (
+                {sorted.length === 0 && (
                   <tr><td colSpan={7} style={{ padding: 40, textAlign: "center", color: "#64748b", fontSize: 13 }}>No applications yet.</td></tr>
                 )}
-                {filtered.map((job, i) => {
+                {sorted.map((job, i) => {
                   const s = STATUS_STYLES[job.status];
                   const isLate = job.deadline && new Date(job.deadline) < new Date() && job.status !== "Offer" && job.status !== "Rejected";
                   return (
-                    <tr key={job.id} className="row-hover" style={{ borderBottom: i < filtered.length - 1 ? "1px solid #1e2235" : "none", transition: "background 0.15s" }}>
-                      <td style={{ padding: "14px 16px" }}>
-                        <div style={{ fontSize: 14, color: "#e2e8f0", fontWeight: 500 }}>{job.position}</div>
+                    <tr key={job.id} className="row-hover" style={{ borderBottom: i < sorted.length - 1 ? "1px solid #1e2235" : "none", transition: "background 0.15s" }}>
+                      <td style={{ padding: "14px 16px", overflow: "hidden" }}>
+                        <div style={{ fontSize: 14, color: "#e2e8f0", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{job.position}</div>
                         {job.url && <a href={job.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: "#6366f1", textDecoration: "none", opacity: 0.8 }}>View posting ↗</a>}
                       </td>
-                      <td style={{ padding: "14px 16px", fontSize: 13, color: "#94a3b8" }}>
+                      <td style={{ padding: "14px 16px", fontSize: 13, color: "#94a3b8", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
                         {job.advertiser || <span style={{ color: "#2d3148" }}>—</span>}
                       </td>
-                      <td style={{ padding: "14px 16px", maxWidth: 220 }}>
+                      <td style={{ padding: "14px 16px", overflow: "hidden" }}>
                         {job.comments
                           ? <span style={{ fontSize: 12, color: "#94a3b8", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{job.comments}</span>
                           : <span style={{ color: "#2d3148" }}>—</span>}
@@ -257,16 +326,16 @@ export default function JobTracker({ user }) {
                           <span key={n} style={{ fontSize: 15, color: n <= (job.excitement || 0) ? "#fbbf24" : "#2d3148" }}>★</span>
                         ))}
                       </td>
-                      <td style={{ padding: "14px 16px" }}>
+                      <td style={{ padding: "14px 16px", overflow: "hidden" }}>
                         {job.deadline ? (
-                          <span style={{ fontSize: 13, color: isLate ? "#f87171" : "#94a3b8" }}>
+                          <span style={{ fontSize: 13, color: isLate ? "#f87171" : "#94a3b8", whiteSpace: "nowrap" }}>
                             {new Date(job.deadline + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                             {isLate && <span style={{ fontSize: 11, marginLeft: 6 }}>overdue</span>}
                           </span>
                         ) : <span style={{ color: "#2d3148" }}>—</span>}
                       </td>
                       <td style={{ padding: "14px 16px" }}>
-                        <span style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}`, borderRadius: 20, padding: "3px 12px", fontSize: 11, fontWeight: 500 }}>
+                        <span style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}`, borderRadius: 20, padding: "3px 12px", fontSize: 11, fontWeight: 500, whiteSpace: "nowrap" }}>
                           {job.status}
                         </span>
                       </td>
