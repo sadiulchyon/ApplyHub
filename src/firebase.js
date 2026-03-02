@@ -1,21 +1,17 @@
-// src/firebase.js
-// Replace these values with your Firebase project config
-// Firebase Console → Project Settings → Your apps → SDK setup
-
+// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyAk_ZO9iWfb5rK08PGbYD8PGZyLi5HXgQM",
+  authDomain: "jobs-trail.firebaseapp.com",
+  projectId: "jobs-trail",
+  storageBucket: "jobs-trail.firebasestorage.app",
+  messagingSenderId: "732338973821",
+  appId: "1:732338973821:web:201abb176d2b174e0cd514"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-export const auth = getAuth(app);
-export const db = getFirestore(app);
