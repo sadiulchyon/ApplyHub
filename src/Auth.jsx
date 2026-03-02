@@ -47,7 +47,7 @@ export default function Auth() {
     <div style={{ minHeight: "100vh", background: "#0f1117", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono', 'Courier New', monospace", color: "#e2e8f0", padding: 24 }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&display=swap');`}</style>
       <div style={{ width: "100%", maxWidth: 380, background: "#161821", border: "1px solid #2d3148", borderRadius: 16, padding: 36 }}>
-        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 26, fontWeight: 800, color: "#fff", marginBottom: 6 }}>ApplyHub</div>
+        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 26, fontWeight: 800, color: "#fff", marginBottom: 6 }}>Job Tracker</div>
         <div style={{ fontSize: 12, color: "#64748b", marginBottom: 28 }}>
           {mode === "login" ? "Sign in to your account" : "Create a new account"}
         </div>
