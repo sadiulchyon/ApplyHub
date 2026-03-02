@@ -17,7 +17,25 @@ const STATUS_STYLES = {
   Rejected:   { bg: "#2a0f14", color: "#fb7185", border: "#9f1239" },
 };
 
-const emptyForm = { position: "", url: "", deadline: "", status: "Bookmarked" };
+const emptyForm = { position: "", advertiser: "", url: "", deadline: "", status: "Bookmarked", excitement: 0, comments: "" };
+
+function Stars({ value, onChange }) {
+  const [hovered, setHovered] = useState(null);
+  const active = hovered ?? value;
+  return (
+    <div style={{ display: "flex", gap: 4 }}>
+      {[1,2,3,4,5].map(n => (
+        <span
+          key={n}
+          onClick={() => onChange(value === n ? 0 : n)}
+          onMouseEnter={() => setHovered(n)}
+          onMouseLeave={() => setHovered(null)}
+          style={{ cursor: "pointer", fontSize: 22, color: n <= active ? "#fbbf24" : "#2d3148", transition: "color 0.1s", userSelect: "none" }}
+        >★</span>
+      ))}
+    </div>
+  );
+}
 
 const inputStyle = {
   width: "100%",
@@ -58,9 +76,12 @@ export default function JobTracker({ user }) {
     if (editId !== null) {
       await updateDoc(doc(db, "users", user.uid, "jobs", editId), {
         position: form.position,
+        advertiser: form.advertiser,
         url: form.url,
         deadline: form.deadline,
         status: form.status,
+        excitement: form.excitement,
+        comments: form.comments,
       });
       setEditId(null);
     } else {
@@ -71,7 +92,7 @@ export default function JobTracker({ user }) {
   };
 
   const handleEdit = (job) => {
-    setForm({ position: job.position, url: job.url, deadline: job.deadline, status: job.status });
+    setForm({ position: job.position, advertiser: job.advertiser || "", url: job.url, deadline: job.deadline, status: job.status, excitement: job.excitement || 0, comments: job.comments || "" });
     setEditId(job.id);
     setShowForm(true);
   };
@@ -137,9 +158,13 @@ export default function JobTracker({ user }) {
               {editId !== null ? "Edit Application" : "New Application"}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <div style={{ gridColumn: "1 / -1" }}>
+              <div>
                 <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>POSITION *</label>
                 <input style={inputStyle} placeholder="e.g. Environmental Data Analyst" value={form.position} onChange={e => setForm({ ...form, position: e.target.value })} />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>ADVERTISER</label>
+                <input style={inputStyle} placeholder="e.g. Acme Corp" value={form.advertiser} onChange={e => setForm({ ...form, advertiser: e.target.value })} />
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>JOB AD URL</label>
@@ -154,6 +179,14 @@ export default function JobTracker({ user }) {
                 <select style={inputStyle} value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
                   {STATUSES.map(s => <option key={s}>{s}</option>)}
                 </select>
+              </div>
+              <div>
+                <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>EXCITEMENT</label>
+                <Stars value={form.excitement} onChange={v => setForm({ ...form, excitement: v })} />
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>COMMENTS</label>
+                <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 72 }} placeholder="Notes, impressions, next steps..." value={form.comments} onChange={e => setForm({ ...form, comments: e.target.value })} />
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
@@ -178,14 +211,14 @@ export default function JobTracker({ user }) {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid #2d3148" }}>
-                  {["Position", "Deadline", "Status", ""].map(h => (
+                  {["Position", "Excitement", "Deadline", "Status", ""].map(h => (
                     <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, color: "#64748b", fontWeight: 500, letterSpacing: "0.05em" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 && (
-                  <tr><td colSpan={4} style={{ padding: 40, textAlign: "center", color: "#64748b", fontSize: 13 }}>No applications yet.</td></tr>
+                  <tr><td colSpan={5} style={{ padding: 40, textAlign: "center", color: "#64748b", fontSize: 13 }}>No applications yet.</td></tr>
                 )}
                 {filtered.map((job, i) => {
                   const s = STATUS_STYLES[job.status];
@@ -194,7 +227,13 @@ export default function JobTracker({ user }) {
                     <tr key={job.id} className="row-hover" style={{ borderBottom: i < filtered.length - 1 ? "1px solid #1e2235" : "none", transition: "background 0.15s" }}>
                       <td style={{ padding: "14px 16px" }}>
                         <div style={{ fontSize: 14, color: "#e2e8f0", fontWeight: 500 }}>{job.position}</div>
+                        {job.advertiser && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{job.advertiser}</div>}
                         {job.url && <a href={job.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: "#6366f1", textDecoration: "none", opacity: 0.8 }}>View posting ↗</a>}
+                      </td>
+                      <td style={{ padding: "14px 16px", whiteSpace: "nowrap" }}>
+                        {[1,2,3,4,5].map(n => (
+                          <span key={n} style={{ fontSize: 15, color: n <= (job.excitement || 0) ? "#fbbf24" : "#2d3148" }}>★</span>
+                        ))}
                       </td>
                       <td style={{ padding: "14px 16px" }}>
                         {job.deadline ? (
