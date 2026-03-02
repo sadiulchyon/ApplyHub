@@ -111,7 +111,7 @@ export default function JobTracker({ user }) {
         {/* Header */}
         <div style={{ marginBottom: 40, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div>
-            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 32, fontWeight: 800, letterSpacing: "-1px", color: "#fff" }}>Job Tracker</div>
+            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 32, fontWeight: 800, letterSpacing: "-1px", color: "#fff" }}>ApplyHub</div>
             <div style={{ color: "#64748b", fontSize: 12, marginTop: 4 }}>{user.email}</div>
           </div>
           <div style={{ display: "flex", gap: 10 }}>
