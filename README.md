@@ -1,4 +1,4 @@
-# Job Tracker
+# ApplyHub
 
 A personal job application tracker built with React + Firebase.
 
@@ -14,14 +14,14 @@ A personal job application tracker built with React + Firebase.
 
 ### 1. Clone and install
 ```bash
-git clone https://github.com/YOUR_USERNAME/job-tracker.git
-cd job-tracker
+git clone https://github.com/YOUR_USERNAME/ApplyHub.git
+cd ApplyHub
 npm install
 ```
 
 ### 2. Create a Firebase project
 1. Go to https://console.firebase.google.com
-2. Click **Add project** → name it (e.g. `job-tracker`) → Create
+2. Click **Add project** → name it (e.g. `jobs-trail`) → Create
 3. In the project dashboard:
    - **Authentication** → Get started → Email/Password → Enable → Save
    - **Firestore Database** → Create database → Start in production mode → Choose region → Done
@@ -51,7 +51,7 @@ firebase init hosting     # public dir = build, single-page app = yes
 firebase deploy --only hosting
 ```
 
-Your app will be live at `https://YOUR_PROJECT_ID.web.app`
+Your app will be live at `https://jobs-trail.web.app`
 
 ---
 
