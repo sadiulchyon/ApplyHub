@@ -71,7 +71,7 @@ export default function JobTracker({ user }) {
   const [loading, setLoading] = useState(true);
   const [submitError, setSubmitError] = useState("");
   const [colWidths, setColWidths] = useState(DEFAULT_WIDTHS);
-  const [sortCol, setSortCol] = useState(null);
+  const [sortCol, setSortCol] = useState("deadline");
   const [sortDir, setSortDir] = useState("asc");
   const resizeRef = useRef(null);
 
@@ -159,8 +159,12 @@ export default function JobTracker({ user }) {
     let av = a[sortCol] ?? "", bv = b[sortCol] ?? "";
     if (sortCol === "excitement") return sortDir === "asc" ? (av||0)-(bv||0) : (bv||0)-(av||0);
     if (sortCol === "deadline") {
-      av = av ? new Date(av).getTime() : 0;
-      bv = bv ? new Date(bv).getTime() : 0;
+      const aEmpty = !av, bEmpty = !bv;
+      if (aEmpty && bEmpty) return 0;
+      if (aEmpty) return 1;
+      if (bEmpty) return -1;
+      av = new Date(av).getTime();
+      bv = new Date(bv).getTime();
       return sortDir === "asc" ? av - bv : bv - av;
     }
     return sortDir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
@@ -189,6 +193,8 @@ export default function JobTracker({ user }) {
         .col-header:hover { color: #c7d2fe; }
         .resize-handle { position: absolute; right: 0; top: 0; bottom: 0; width: 5px; cursor: col-resize; z-index: 1; }
         .resize-handle:hover, .resize-handle:active { background: #6366f1; opacity: 0.5; }
+        thead th:not(:last-child) { border-right: 1px solid #2d3148; }
+        tbody td:not(:last-child) { border-right: 1px solid #1e2235; }
       `}</style>
 
       <div style={{ maxWidth: 1300, margin: "0 auto" }}>
