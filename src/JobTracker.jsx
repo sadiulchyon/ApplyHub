@@ -57,6 +57,7 @@ export default function JobTracker({ user }) {
   const [filterStatus, setFilterStatus] = useState("All");
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [submitError, setSubmitError] = useState("");
 
   // Reference to this user's jobs collection
   const userJobsRef = collection(db, "users", user.uid, "jobs");
@@ -73,22 +74,27 @@ export default function JobTracker({ user }) {
 
   const handleSubmit = async () => {
     if (!form.position.trim()) return;
-    if (editId !== null) {
-      await updateDoc(doc(db, "users", user.uid, "jobs", editId), {
-        position: form.position,
-        advertiser: form.advertiser,
-        url: form.url,
-        deadline: form.deadline,
-        status: form.status,
-        excitement: form.excitement,
-        comments: form.comments,
-      });
-      setEditId(null);
-    } else {
-      await addDoc(userJobsRef, { ...form, createdAt: serverTimestamp() });
+    setSubmitError("");
+    try {
+      if (editId !== null) {
+        await updateDoc(doc(db, "users", user.uid, "jobs", editId), {
+          position: form.position,
+          advertiser: form.advertiser,
+          url: form.url,
+          deadline: form.deadline,
+          status: form.status,
+          excitement: form.excitement,
+          comments: form.comments,
+        });
+        setEditId(null);
+      } else {
+        await addDoc(userJobsRef, { ...form, createdAt: serverTimestamp() });
+      }
+      setForm(emptyForm);
+      setShowForm(false);
+    } catch (err) {
+      setSubmitError(err.message || "Failed to save. Check Firestore rules.");
     }
-    setForm(emptyForm);
-    setShowForm(false);
   };
 
   const handleEdit = (job) => {
@@ -105,6 +111,7 @@ export default function JobTracker({ user }) {
     setForm(emptyForm);
     setEditId(null);
     setShowForm(false);
+    setSubmitError("");
   };
 
   const filtered = filterStatus === "All" ? jobs : jobs.filter(j => j.status === filterStatus);
@@ -189,6 +196,11 @@ export default function JobTracker({ user }) {
                 <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 72 }} placeholder="Notes, impressions, next steps..." value={form.comments} onChange={e => setForm({ ...form, comments: e.target.value })} />
               </div>
             </div>
+            {submitError && (
+              <div style={{ marginTop: 12, padding: "8px 12px", background: "#2a0f14", border: "1px solid #9f1239", borderRadius: 6, color: "#fb7185", fontSize: 12 }}>
+                {submitError}
+              </div>
+            )}
             <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
               <button className="btn-primary" onClick={handleSubmit}>{editId !== null ? "Save Changes" : "Add Application"}</button>
               <button className="btn-ghost" onClick={handleCancel}>Cancel</button>
