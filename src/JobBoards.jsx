@@ -19,6 +19,8 @@ const inputStyle = {
   width: "100%",
 };
 
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
+
 const SAMPLE_BOARDS = [
   { name: "HigherEdJobs", url: "https://www.higheredjobs.com", isSample: true },
   { name: "AGU Jobs", url: "https://careers.agu.org", isSample: true },
@@ -38,6 +40,8 @@ export default function JobBoards({ user, showForm, setShowForm }) {
   const [editingScoutedId, setEditingScoutedId] = useState(null);
   const [scoutedDraft, setScoutedDraft] = useState("");
   const [addError, setAddError] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const seededRef = useRef(false);
 
   const userBoardsRef = collection(db, "users", user.uid, "jobboards");
@@ -116,6 +120,19 @@ export default function JobBoards({ user, showForm, setShowForm }) {
 
   const today = () => new Date().toISOString().split("T")[0];
 
+
+  const totalPages = Math.max(1, Math.ceil(boards.length / pageSize));
+
+  useEffect(() => {
+    setPage(prev => Math.min(prev, totalPages));
+  }, [totalPages]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [pageSize]);
+
+  const paginatedBoards = boards.slice((page - 1) * pageSize, page * pageSize);
+
   return (
     <div>
       {/* Sample banner */}
@@ -148,8 +165,8 @@ export default function JobBoards({ user, showForm, setShowForm }) {
                   </td>
                 </tr>
               )}
-              {boards.map((board, i) => (
-                <tr key={board.id} className="row-hover" style={{ borderBottom: i < boards.length - 1 ? "1px solid #1e2235" : "none", transition: "background 0.15s" }}>
+              {paginatedBoards.map((board, i) => (
+                <tr key={board.id} className="row-hover" style={{ borderBottom: i < paginatedBoards.length - 1 ? "1px solid #1e2235" : "none", transition: "background 0.15s" }}>
                   <td style={{ padding: "14px 20px" }}>
                     {editId === board.id ? (
                       <input
@@ -241,6 +258,31 @@ export default function JobBoards({ user, showForm, setShowForm }) {
           </table>
         )}
       </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
+        <div style={{ fontSize: 12, color: "#64748b" }}>
+          Showing {boards.length === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(page * pageSize, boards.length)} of {boards.length}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <label style={{ fontSize: 12, color: "#94a3b8" }}>
+            Rows:
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              style={{ marginLeft: 6, background: "#0f1117", color: "#e2e8f0", border: "1px solid #2d3148", borderRadius: 6, padding: "4px 8px", fontFamily: "inherit", fontSize: 12 }}
+            >
+              {PAGE_SIZE_OPTIONS.map(size => <option key={size} value={size}>{size}</option>)}
+            </select>
+          </label>
+          <button className="btn-ghost" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} style={{ opacity: page === 1 ? 0.5 : 1 }}>
+            Prev
+          </button>
+          <span style={{ fontSize: 12, color: "#94a3b8", minWidth: 64, textAlign: "center" }}>Page {page} / {totalPages}</span>
+          <button className="btn-ghost" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} style={{ opacity: page >= totalPages ? 0.5 : 1 }}>
+            Next
+          </button>
+        </div>
+      </div>
+
 
       {!showForm && (
         <div style={{ textAlign: "center", marginTop: 16 }}>

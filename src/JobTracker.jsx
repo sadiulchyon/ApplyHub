@@ -25,14 +25,15 @@ const emptyForm = { position: "", advertiser: "", url: "", deadline: "", status:
 const COLS = [
   { key: "position",   label: "Position" },
   { key: "advertiser", label: "Advertiser" },
-  { key: "comments",   label: "Comments" },
   { key: "excitement", label: "Excitement" },
   { key: "deadline",   label: "Deadline" },
   { key: "status",     label: "Status" },
+  { key: "comments",   label: "Comments" },
   { key: "actions",    label: "", sortable: false },
 ];
 
 const DEFAULT_WIDTHS = { position: 190, advertiser: 150, comments: 210, excitement: 108, deadline: 130, status: 170, actions: 80 };
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 function Stars({ value, onChange, size = 22 }) {
   const [hovered, setHovered] = useState(null);
@@ -81,6 +82,8 @@ export default function JobTracker({ user }) {
   const [sortCol, setSortCol] = useState("deadline");
   const [sortDir, setSortDir] = useState("asc");
   const [view, setView] = useState("applications");
+  const [applicationsPage, setApplicationsPage] = useState(1);
+  const [applicationsPageSize, setApplicationsPageSize] = useState(10);
   const [showBoardForm, setShowBoardForm] = useState(false);
   const resizeRef = useRef(null);
   const interviewDateInputRefs = useRef({});
@@ -216,6 +219,19 @@ export default function JobTracker({ user }) {
     return sortDir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
   });
 
+
+  const totalApplicationPages = Math.max(1, Math.ceil(sorted.length / applicationsPageSize));
+
+  useEffect(() => {
+    setApplicationsPage(prev => Math.min(prev, totalApplicationPages));
+  }, [totalApplicationPages]);
+
+  useEffect(() => {
+    setApplicationsPage(1);
+  }, [filterStatus, sortCol, sortDir, applicationsPageSize]);
+
+  const paginatedApplications = sorted.slice((applicationsPage - 1) * applicationsPageSize, applicationsPage * applicationsPageSize);
+
   return (
     <div style={{ minHeight: "100vh", background: "#0f1117", fontFamily: "'DM Mono', 'Courier New', monospace", color: "#e2e8f0", padding: "40px 24px" }}>
       <style>{`
@@ -340,35 +356,17 @@ export default function JobTracker({ user }) {
                 {sorted.length === 0 && (
                   <tr><td colSpan={7} style={{ padding: 40, textAlign: "center", color: "#64748b", fontSize: 13 }}>No applications yet.</td></tr>
                 )}
-                {sorted.map((job, i) => {
+                {paginatedApplications.map((job, i) => {
                   const s = STATUS_STYLES[job.status];
-                  const isLate = job.deadline && new Date(job.deadline) < new Date() && job.status !== "Offer" && job.status !== "Rejected";
+                  const isLate = job.deadline && new Date(job.deadline) < new Date() && job.status === "Bookmarked";
                   return (
-                    <tr key={job.id} className="row-hover" style={{ borderBottom: i < sorted.length - 1 ? "1px solid #1e2235" : "none", transition: "background 0.15s" }}>
+                    <tr key={job.id} className="row-hover" style={{ borderBottom: i < paginatedApplications.length - 1 ? "1px solid #1e2235" : "none", transition: "background 0.15s" }}>
                       <td style={{ padding: "14px 16px", overflow: "hidden" }}>
                         <div style={{ fontSize: 14, color: "#e2e8f0", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{job.position}</div>
                         {job.url && <a href={job.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: "#6366f1", textDecoration: "none", opacity: 0.8 }}>View posting ↗</a>}
                       </td>
                       <td style={{ padding: "14px 16px", fontSize: 13, color: "#94a3b8", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
                         {job.advertiser || <span style={{ color: "#2d3148" }}>—</span>}
-                      </td>
-                      <td style={{ padding: "10px 16px", overflow: "hidden" }}>
-                        {editingComments === job.id ? (
-                          <textarea
-                            autoFocus
-                            className="comment-textarea"
-                            value={commentDraft}
-                            onChange={e => setCommentDraft(e.target.value)}
-                            onBlur={() => { updateField(job.id, "comments", commentDraft); setEditingComments(null); }}
-                            onKeyDown={e => { if (e.key === "Escape") setEditingComments(null); }}
-                          />
-                        ) : (
-                          <div className="comment-cell" onClick={() => { setEditingComments(job.id); setCommentDraft(job.comments || ""); }}>
-                            {job.comments
-                              ? <span style={{ fontSize: 12, color: "#94a3b8", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{job.comments}</span>
-                              : <span style={{ fontSize: 12, color: "#2d3148" }}>Click to add…</span>}
-                          </div>
-                        )}
                       </td>
                       <td style={{ padding: "14px 16px", whiteSpace: "nowrap" }}>
                         <Stars value={job.excitement || 0} onChange={v => updateField(job.id, "excitement", v)} size={16} />
@@ -437,6 +435,24 @@ export default function JobTracker({ user }) {
                           )}
                         </div>
                       </td>
+                      <td style={{ padding: "10px 16px", overflow: "hidden" }}>
+                        {editingComments === job.id ? (
+                          <textarea
+                            autoFocus
+                            className="comment-textarea"
+                            value={commentDraft}
+                            onChange={e => setCommentDraft(e.target.value)}
+                            onBlur={() => { updateField(job.id, "comments", commentDraft); setEditingComments(null); }}
+                            onKeyDown={e => { if (e.key === "Escape") setEditingComments(null); }}
+                          />
+                        ) : (
+                          <div className="comment-cell" onClick={() => { setEditingComments(job.id); setCommentDraft(job.comments || ""); }}>
+                            {job.comments
+                              ? <span style={{ fontSize: 12, color: "#94a3b8", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{job.comments}</span>
+                              : <span style={{ fontSize: 12, color: "#2d3148" }}>Click to add…</span>}
+                          </div>
+                        )}
+                      </td>
                       <td style={{ padding: "14px 16px", textAlign: "right", whiteSpace: "nowrap" }}>
                         <button title="Edit" className="icon-btn" onClick={() => handleEdit(job)}>
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -451,6 +467,31 @@ export default function JobTracker({ user }) {
               </tbody>
             </table>
           )}
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
+          <div style={{ fontSize: 12, color: "#64748b" }}>
+            Showing {sorted.length === 0 ? 0 : (applicationsPage - 1) * applicationsPageSize + 1}–{Math.min(applicationsPage * applicationsPageSize, sorted.length)} of {sorted.length}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <label style={{ fontSize: 12, color: "#94a3b8" }}>
+              Rows:
+              <select
+                value={applicationsPageSize}
+                onChange={(e) => setApplicationsPageSize(Number(e.target.value))}
+                style={{ marginLeft: 6, background: "#0f1117", color: "#e2e8f0", border: "1px solid #2d3148", borderRadius: 6, padding: "4px 8px", fontFamily: "inherit", fontSize: 12 }}
+              >
+                {PAGE_SIZE_OPTIONS.map(size => <option key={size} value={size}>{size}</option>)}
+              </select>
+            </label>
+            <button className="btn-ghost" onClick={() => setApplicationsPage(p => Math.max(1, p - 1))} disabled={applicationsPage === 1} style={{ opacity: applicationsPage === 1 ? 0.5 : 1 }}>
+              Prev
+            </button>
+            <span style={{ fontSize: 12, color: "#94a3b8", minWidth: 64, textAlign: "center" }}>Page {applicationsPage} / {totalApplicationPages}</span>
+            <button className="btn-ghost" onClick={() => setApplicationsPage(p => Math.min(totalApplicationPages, p + 1))} disabled={applicationsPage >= totalApplicationPages} style={{ opacity: applicationsPage >= totalApplicationPages ? 0.5 : 1 }}>
+              Next
+            </button>
+          </div>
         </div>
 
         {!showForm && (
