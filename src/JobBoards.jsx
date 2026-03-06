@@ -27,7 +27,7 @@ const SAMPLE_BOARDS = [
   { name: "LinkedIn Jobs", url: "https://www.linkedin.com/jobs", isSample: true },
 ];
 
-export default function JobBoards({ user }) {
+export default function JobBoards({ user, showForm, setShowForm }) {
   const [boards, setBoards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState("");
@@ -74,6 +74,7 @@ export default function JobBoards({ user }) {
       });
       setNewName("");
       setNewUrl("");
+      if (setShowForm) setShowForm(false);
     } catch (err) {
       setAddError(err.code === "permission-denied"
         ? "Permission denied — Firestore rules need to be deployed. Run: firebase deploy --only firestore:rules"
@@ -103,7 +104,7 @@ export default function JobBoards({ user }) {
   return (
     <div>
       {/* Add form */}
-      <div style={{ background: "#161821", border: "1px solid #2d3148", borderRadius: 12, padding: 20, marginBottom: 24 }}>
+      {showForm && <div style={{ background: "#161821", border: "1px solid #2d3148", borderRadius: 12, padding: 20, marginBottom: 24 }}>
         <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12, letterSpacing: "0.05em" }}>ADD JOB BOARD</div>
         <div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>
           <div style={{ flex: "0 0 220px" }}>
@@ -133,13 +134,20 @@ export default function JobBoards({ user }) {
           >
             + Add Board
           </button>
+          <button
+            className="btn-ghost"
+            onClick={() => { setShowForm(false); setNewName(""); setNewUrl(""); setAddError(""); }}
+            style={{ whiteSpace: "nowrap", flexShrink: 0 }}
+          >
+            Cancel
+          </button>
         </div>
         {addError && (
           <div style={{ marginTop: 12, padding: "8px 12px", background: "#2a0f14", border: "1px solid #9f1239", borderRadius: 6, color: "#fb7185", fontSize: 12 }}>
             {addError}
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Sample banner */}
       {hasSamples && (

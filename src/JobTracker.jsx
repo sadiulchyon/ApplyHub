@@ -81,6 +81,7 @@ export default function JobTracker({ user }) {
   const [sortCol, setSortCol] = useState("deadline");
   const [sortDir, setSortDir] = useState("asc");
   const [view, setView] = useState("applications");
+  const [showBoardForm, setShowBoardForm] = useState(false);
   const resizeRef = useRef(null);
   const interviewDateInputRefs = useRef({});
   const seededRef = useRef(false);
@@ -259,13 +260,13 @@ export default function JobTracker({ user }) {
             <div style={{ display: "flex", gap: 6, background: "#161821", border: "1px solid #2d3148", borderRadius: 24, padding: "4px 6px" }}>
               <button
                 className={`filter-btn ${view === "applications" ? "active" : ""}`}
-                onClick={() => setView("applications")}
+                onClick={() => { setView("applications"); setShowBoardForm(false); }}
               >
                 Applications
               </button>
               <button
                 className={`filter-btn ${view === "boards" ? "active" : ""}`}
-                onClick={() => setView("boards")}
+                onClick={() => { setView("boards"); setShowForm(false); }}
               >
                 Job Boards
               </button>
@@ -273,11 +274,14 @@ export default function JobTracker({ user }) {
             {view === "applications" && !showForm && (
               <button className="btn-primary" onClick={() => setShowForm(true)}>+ Add Application</button>
             )}
+            {view === "boards" && !showBoardForm && (
+              <button className="btn-primary" onClick={() => setShowBoardForm(true)}>+ Add Board</button>
+            )}
             <button className="btn-ghost" onClick={() => signOut(auth)}>Sign out</button>
           </div>
         </div>
 
-        {view === "boards" && <JobBoards user={user} />}
+        {view === "boards" && <JobBoards user={user} showForm={showBoardForm} setShowForm={setShowBoardForm} />}
 
         {view === "applications" && <>
         {/* Stats */}
