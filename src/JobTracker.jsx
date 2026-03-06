@@ -278,20 +278,24 @@ export default function JobTracker({ user }) {
         {view === "boards" && <JobBoards user={user} showForm={showBoardForm} setShowForm={setShowBoardForm} />}
 
         {view === "applications" && <>
-        {/* Stats */}
+        {/* Stats / Filter — click a card to filter */}
         <div style={{ display: "flex", gap: 12, marginBottom: 28, flexWrap: "wrap" }}>
+          <div
+            onClick={() => setFilterStatus("All")}
+            style={{ background: "#161821", border: `1px solid ${filterStatus === "All" ? "#6366f1" : "#2d3148"}`, borderRadius: 10, padding: "10px 16px", minWidth: 100, cursor: "pointer", transition: "border-color 0.2s" }}
+          >
+            <div style={{ fontSize: 20, fontWeight: 500, color: filterStatus === "All" ? "#818cf8" : "#94a3b8" }}>{jobs.length}</div>
+            <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>All</div>
+          </div>
           {STATUSES.map(s => (
-            <div key={s} style={{ background: "#161821", border: "1px solid #2d3148", borderRadius: 10, padding: "10px 16px", minWidth: 100 }}>
+            <div
+              key={s}
+              onClick={() => setFilterStatus(s)}
+              style={{ background: "#161821", border: `1px solid ${filterStatus === s ? STATUS_STYLES[s].border : "#2d3148"}`, borderRadius: 10, padding: "10px 16px", minWidth: 100, cursor: "pointer", transition: "border-color 0.2s" }}
+            >
               <div style={{ fontSize: 20, fontWeight: 500, color: STATUS_STYLES[s].color }}>{counts[s]}</div>
               <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{getStatusLabel(s)}</div>
             </div>
-          ))}
-        </div>
-
-        {/* Filter */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-          {["All", ...STATUSES].map(s => (
-            <button key={s} className={`filter-btn ${filterStatus === s ? "active" : ""}`} onClick={() => setFilterStatus(s)}>{getStatusLabel(s)}</button>
           ))}
         </div>
 
@@ -445,25 +449,22 @@ export default function JobTracker({ user }) {
                   );
                 })}
               </tbody>
-              {!showForm && (
-                <tfoot>
-                  <tr>
-                    <td colSpan={COLS.length} style={{ borderTop: "1px solid #1e2235" }}>
-                      <button
-                        onClick={() => setShowForm(true)}
-                        style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", gap: 6, padding: "10px 20px", fontFamily: "inherit", width: "100%" }}
-                        onMouseEnter={e => e.currentTarget.style.color = "#e2e8f0"}
-                        onMouseLeave={e => e.currentTarget.style.color = "#64748b"}
-                      >
-                        <span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add Application
-                      </button>
-                    </td>
-                  </tr>
-                </tfoot>
-              )}
             </table>
           )}
         </div>
+
+        {!showForm && (
+          <div style={{ textAlign: "center", marginTop: 16 }}>
+            <button
+              onClick={() => setShowForm(true)}
+              style={{ background: "none", border: "1px dashed #2d3148", color: "#64748b", cursor: "pointer", fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 28px", fontFamily: "inherit", borderRadius: 8, transition: "all 0.2s" }}
+              onMouseEnter={e => { e.currentTarget.style.color = "#e2e8f0"; e.currentTarget.style.borderColor = "#6366f1"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = "#64748b"; e.currentTarget.style.borderColor = "#2d3148"; }}
+            >
+              <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> Add Application
+            </button>
+          </div>
+        )}
 
         {/* Form */}
         {showForm && (

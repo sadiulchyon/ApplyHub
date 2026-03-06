@@ -190,25 +190,22 @@ export default function JobBoards({ user, showForm, setShowForm }) {
                 </tr>
               ))}
             </tbody>
-            {!showForm && (
-              <tfoot>
-                <tr>
-                  <td colSpan={3} style={{ borderTop: "1px solid #1e2235" }}>
-                    <button
-                      onClick={() => setShowForm(true)}
-                      style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", gap: 6, padding: "10px 20px", fontFamily: "inherit", width: "100%" }}
-                      onMouseEnter={e => e.currentTarget.style.color = "#e2e8f0"}
-                      onMouseLeave={e => e.currentTarget.style.color = "#64748b"}
-                    >
-                      <span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add Board
-                    </button>
-                  </td>
-                </tr>
-              </tfoot>
-            )}
           </table>
         )}
       </div>
+
+      {!showForm && (
+        <div style={{ textAlign: "center", marginTop: 16 }}>
+          <button
+            onClick={() => setShowForm(true)}
+            style={{ background: "none", border: "1px dashed #2d3148", color: "#64748b", cursor: "pointer", fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 28px", fontFamily: "inherit", borderRadius: 8, transition: "all 0.2s" }}
+            onMouseEnter={e => { e.currentTarget.style.color = "#e2e8f0"; e.currentTarget.style.borderColor = "#6366f1"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = "#64748b"; e.currentTarget.style.borderColor = "#2d3148"; }}
+          >
+            <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> Add Board
+          </button>
+        </div>
+      )}
 
       {/* Add form */}
       {showForm && <div style={{ background: "#161821", border: "1px solid #2d3148", borderRadius: 12, padding: 20, marginTop: 16 }}>
