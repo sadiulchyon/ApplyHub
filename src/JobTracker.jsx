@@ -271,12 +271,6 @@ export default function JobTracker({ user }) {
                 Job Boards
               </button>
             </div>
-            {view === "applications" && !showForm && (
-              <button className="btn-primary" onClick={() => setShowForm(true)}>+ Add Application</button>
-            )}
-            {view === "boards" && !showBoardForm && (
-              <button className="btn-primary" onClick={() => setShowBoardForm(true)}>+ Add Board</button>
-            )}
             <button className="btn-ghost" onClick={() => signOut(auth)}>Sign out</button>
           </div>
         </div>
@@ -293,62 +287,6 @@ export default function JobTracker({ user }) {
             </div>
           ))}
         </div>
-
-        {/* Form */}
-        {showForm && (
-          <div style={{ background: "#161821", border: "1px solid #2d3148", borderRadius: 12, padding: 24, marginBottom: 28 }}>
-            <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 16, color: "#94a3b8" }}>
-              {editId !== null ? "Edit Application" : "New Application"}
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <div>
-                <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>POSITION *</label>
-                <input style={inputStyle} placeholder="e.g. Environmental Data Analyst" value={form.position} onChange={e => setForm({ ...form, position: e.target.value })} />
-              </div>
-              <div>
-                <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>ADVERTISER</label>
-                <input style={inputStyle} placeholder="e.g. Acme Corp" value={form.advertiser} onChange={e => setForm({ ...form, advertiser: e.target.value })} />
-              </div>
-              <div style={{ gridColumn: "1 / -1" }}>
-                <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>JOB AD URL</label>
-                <input style={inputStyle} placeholder="https://..." value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} />
-              </div>
-              <div>
-                <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>DEADLINE</label>
-                <input type="date" style={inputStyle} value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} />
-              </div>
-              <div>
-                <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>STATUS</label>
-                <select style={inputStyle} value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
-                  {STATUSES.map(s => <option key={s} value={s}>{getStatusLabel(s)}</option>)}
-                </select>
-              </div>
-              {form.status === "Interview" && (
-                <div>
-                  <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>INTERVIEW DATE</label>
-                  <input type="date" style={inputStyle} value={form.interviewDate} onChange={e => setForm({ ...form, interviewDate: e.target.value })} />
-                </div>
-              )}
-              <div>
-                <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>EXCITEMENT</label>
-                <Stars value={form.excitement} onChange={v => setForm({ ...form, excitement: v })} />
-              </div>
-              <div style={{ gridColumn: "1 / -1" }}>
-                <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>COMMENTS</label>
-                <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 72 }} placeholder="Notes, impressions, next steps..." value={form.comments} onChange={e => setForm({ ...form, comments: e.target.value })} />
-              </div>
-            </div>
-            {submitError && (
-              <div style={{ marginTop: 12, padding: "8px 12px", background: "#2a0f14", border: "1px solid #9f1239", borderRadius: 6, color: "#fb7185", fontSize: 12 }}>
-                {submitError}
-              </div>
-            )}
-            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-              <button className="btn-primary" onClick={handleSubmit}>{editId !== null ? "Save Changes" : "Add Application"}</button>
-              <button className="btn-ghost" onClick={handleCancel}>Cancel</button>
-            </div>
-          </div>
-        )}
 
         {/* Filter */}
         <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
@@ -507,9 +445,81 @@ export default function JobTracker({ user }) {
                   );
                 })}
               </tbody>
+              {!showForm && (
+                <tfoot>
+                  <tr>
+                    <td colSpan={COLS.length} style={{ borderTop: "1px solid #1e2235" }}>
+                      <button
+                        onClick={() => setShowForm(true)}
+                        style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", gap: 6, padding: "10px 20px", fontFamily: "inherit", width: "100%" }}
+                        onMouseEnter={e => e.currentTarget.style.color = "#e2e8f0"}
+                        onMouseLeave={e => e.currentTarget.style.color = "#64748b"}
+                      >
+                        <span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add Application
+                      </button>
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
             </table>
           )}
         </div>
+
+        {/* Form */}
+        {showForm && (
+          <div style={{ background: "#161821", border: "1px solid #2d3148", borderRadius: 12, padding: 24, marginTop: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 16, color: "#94a3b8" }}>
+              {editId !== null ? "Edit Application" : "New Application"}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>POSITION *</label>
+                <input style={inputStyle} placeholder="e.g. Environmental Data Analyst" value={form.position} onChange={e => setForm({ ...form, position: e.target.value })} />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>ADVERTISER</label>
+                <input style={inputStyle} placeholder="e.g. Acme Corp" value={form.advertiser} onChange={e => setForm({ ...form, advertiser: e.target.value })} />
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>JOB AD URL</label>
+                <input style={inputStyle} placeholder="https://..." value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>DEADLINE</label>
+                <input type="date" style={inputStyle} value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>STATUS</label>
+                <select style={inputStyle} value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
+                  {STATUSES.map(s => <option key={s} value={s}>{getStatusLabel(s)}</option>)}
+                </select>
+              </div>
+              {form.status === "Interview" && (
+                <div>
+                  <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>INTERVIEW DATE</label>
+                  <input type="date" style={inputStyle} value={form.interviewDate} onChange={e => setForm({ ...form, interviewDate: e.target.value })} />
+                </div>
+              )}
+              <div>
+                <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>EXCITEMENT</label>
+                <Stars value={form.excitement} onChange={v => setForm({ ...form, excitement: v })} />
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>COMMENTS</label>
+                <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 72 }} placeholder="Notes, impressions, next steps..." value={form.comments} onChange={e => setForm({ ...form, comments: e.target.value })} />
+              </div>
+            </div>
+            {submitError && (
+              <div style={{ marginTop: 12, padding: "8px 12px", background: "#2a0f14", border: "1px solid #9f1239", borderRadius: 6, color: "#fb7185", fontSize: 12 }}>
+                {submitError}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+              <button className="btn-primary" onClick={handleSubmit}>{editId !== null ? "Save Changes" : "Add Application"}</button>
+              <button className="btn-ghost" onClick={handleCancel}>Cancel</button>
+            </div>
+          </div>
+        )}
         </>}
       </div>
     </div>
