@@ -35,6 +35,7 @@ export default function JobBoards({ user }) {
   const [editId, setEditId] = useState(null);
   const [editName, setEditName] = useState("");
   const [editUrl, setEditUrl] = useState("");
+  const [addError, setAddError] = useState("");
   const seededRef = useRef(false);
 
   const userBoardsRef = collection(db, "users", user.uid, "jobboards");
@@ -64,13 +65,20 @@ export default function JobBoards({ user }) {
 
   const handleAdd = async () => {
     if (!newName.trim()) return;
-    await addDoc(userBoardsRef, {
-      name: newName.trim(),
-      url: newUrl.trim(),
-      createdAt: serverTimestamp(),
-    });
-    setNewName("");
-    setNewUrl("");
+    setAddError("");
+    try {
+      await addDoc(userBoardsRef, {
+        name: newName.trim(),
+        url: newUrl.trim(),
+        createdAt: serverTimestamp(),
+      });
+      setNewName("");
+      setNewUrl("");
+    } catch (err) {
+      setAddError(err.code === "permission-denied"
+        ? "Permission denied — Firestore rules need to be deployed. Run: firebase deploy --only firestore:rules"
+        : (err.message || "Failed to save. Check Firestore rules."));
+    }
   };
 
   const startEdit = (board) => {
@@ -126,6 +134,11 @@ export default function JobBoards({ user }) {
             + Add Board
           </button>
         </div>
+        {addError && (
+          <div style={{ marginTop: 12, padding: "8px 12px", background: "#2a0f14", border: "1px solid #9f1239", borderRadius: 6, color: "#fb7185", fontSize: 12 }}>
+            {addError}
+          </div>
+        )}
       </div>
 
       {/* Sample banner */}
