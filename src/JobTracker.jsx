@@ -17,7 +17,7 @@ const STATUS_STYLES = {
   Rejected:   { bg: "#2a0f14", color: "#fb7185", border: "#9f1239" },
 };
 
-const emptyForm = { position: "", advertiser: "", url: "", deadline: "", status: "Bookmarked", excitement: 0, comments: "" };
+const emptyForm = { position: "", advertiser: "", url: "", deadline: "", status: "Bookmarked", interviewDate: "", excitement: 0, comments: "" };
 
 const COLS = [
   { key: "position",   label: "Position" },
@@ -29,7 +29,7 @@ const COLS = [
   { key: "actions",    label: "", sortable: false },
 ];
 
-const DEFAULT_WIDTHS = { position: 190, advertiser: 150, comments: 210, excitement: 108, deadline: 130, status: 112, actions: 80 };
+const DEFAULT_WIDTHS = { position: 190, advertiser: 150, comments: 210, excitement: 108, deadline: 130, status: 170, actions: 80 };
 
 function Stars({ value, onChange, size = 22 }) {
   const [hovered, setHovered] = useState(null);
@@ -124,7 +124,7 @@ export default function JobTracker({ user }) {
         const samples = [
           { position: "Remote Sensing Intern", advertiser: "NASA Goddard Space Flight Center", url: "", deadline: ds(23), status: "Bookmarked", excitement: 4, comments: "Focuses on land surface hydrology using MODIS and Landsat — strong fit. Check their current research group before applying.", isSample: true },
           { position: "Water Resources Analyst", advertiser: "USGS", url: "", deadline: ds(-1), status: "Applied", excitement: 5, comments: "Applied via USAJobs. Role involves streamflow modelling and satellite-derived ET. Follow up by end of week.", isSample: true },
-          { position: "GIS & Hydrological Modelling Specialist", advertiser: "Deltares", url: "", deadline: ds(8), status: "Interview", excitement: 3, comments: "Video interview Thursday. They use SOBEK and Delft3D — review before call. Ask about remote work flexibility.", isSample: true },
+          { position: "GIS & Hydrological Modelling Specialist", advertiser: "Deltares", url: "", deadline: ds(8), status: "Interview", interviewDate: ds(3), excitement: 3, comments: "Video interview Thursday. They use SOBEK and Delft3D — review before call. Ask about remote work flexibility.", isSample: true },
           { position: "Postdoctoral Fellow – SAR & Flood Mapping", advertiser: "TU Delft", url: "", deadline: ds(5), status: "Offer", excitement: 5, comments: "2-year position with competitive stipend. Offer expires soon — compare with Deltares role before deciding.", isSample: true },
           { position: "Earth Observation Data Scientist", advertiser: "Planet Labs", url: "", deadline: ds(-47), status: "Rejected", excitement: 2, comments: "Requested feedback after rejection — suggested stronger ML background. Good experience overall.", isSample: true },
         ];
@@ -153,6 +153,7 @@ export default function JobTracker({ user }) {
           url: form.url,
           deadline: form.deadline,
           status: form.status,
+          interviewDate: form.status === "Interview" ? form.interviewDate || "" : "",
           excitement: form.excitement,
           comments: form.comments,
         });
@@ -168,7 +169,7 @@ export default function JobTracker({ user }) {
   };
 
   const handleEdit = (job) => {
-    setForm({ position: job.position, advertiser: job.advertiser || "", url: job.url, deadline: job.deadline, status: job.status, excitement: job.excitement || 0, comments: job.comments || "" });
+    setForm({ position: job.position, advertiser: job.advertiser || "", url: job.url, deadline: job.deadline, status: job.status, interviewDate: job.interviewDate || "", excitement: job.excitement || 0, comments: job.comments || "" });
     setEditId(job.id);
     setShowForm(true);
   };
@@ -287,6 +288,12 @@ export default function JobTracker({ user }) {
                   {STATUSES.map(s => <option key={s}>{s}</option>)}
                 </select>
               </div>
+              {form.status === "Interview" && (
+                <div>
+                  <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>INTERVIEW DATE</label>
+                  <input type="date" style={inputStyle} value={form.interviewDate} onChange={e => setForm({ ...form, interviewDate: e.target.value })} />
+                </div>
+              )}
               <div>
                 <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>EXCITEMENT</label>
                 <Stars value={form.excitement} onChange={v => setForm({ ...form, excitement: v })} />
@@ -398,14 +405,40 @@ export default function JobTracker({ user }) {
                         ) : <span style={{ color: "#2d3148" }}>—</span>}
                       </td>
                       <td style={{ padding: "14px 16px" }}>
-                        <select
-                          className="status-select"
-                          value={job.status}
-                          onChange={e => updateField(job.id, "status", e.target.value)}
-                          style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}
-                        >
-                          {STATUSES.map(st => <option key={st} value={st}>{st}</option>)}
-                        </select>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          <select
+                            className="status-select"
+                            value={job.status}
+                            onChange={async (e) => {
+                              const nextStatus = e.target.value;
+                              await updateField(job.id, "status", nextStatus);
+                              if (nextStatus !== "Interview" && job.interviewDate) {
+                                await updateField(job.id, "interviewDate", "");
+                              }
+                            }}
+                            style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}
+                          >
+                            {STATUSES.map(st => <option key={st} value={st}>{st}</option>)}
+                          </select>
+                          {job.status === "Interview" && (
+                            <input
+                              type="date"
+                              value={job.interviewDate || ""}
+                              onChange={e => updateField(job.id, "interviewDate", e.target.value)}
+                              style={{
+                                width: "100%",
+                                background: "#0f1117",
+                                border: "1px solid #92400e",
+                                borderRadius: 6,
+                                padding: "5px 8px",
+                                color: "#fbbf24",
+                                fontFamily: "inherit",
+                                fontSize: 11,
+                                outline: "none",
+                              }}
+                            />
+                          )}
+                        </div>
                       </td>
                       <td style={{ padding: "14px 16px", textAlign: "right", whiteSpace: "nowrap" }}>
                         <button title="Edit" className="icon-btn" onClick={() => handleEdit(job)}>
