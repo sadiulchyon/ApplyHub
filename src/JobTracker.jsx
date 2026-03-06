@@ -80,6 +80,7 @@ export default function JobTracker({ user }) {
   const [sortCol, setSortCol] = useState("deadline");
   const [sortDir, setSortDir] = useState("asc");
   const resizeRef = useRef(null);
+  const interviewDateInputRefs = useRef({});
   const seededRef = useRef(false);
 
   const startResize = (e, key) => {
