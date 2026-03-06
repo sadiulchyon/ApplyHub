@@ -8,6 +8,8 @@ import {
 } from "firebase/firestore";
 
 const STATUSES = ["Bookmarked", "Applied", "Interview", "Offer", "Rejected"];
+const STATUS_LABELS = { Bookmarked: "Planning to Apply" };
+const getStatusLabel = (status) => STATUS_LABELS[status] || status;
 
 const STATUS_STYLES = {
   Bookmarked: { bg: "#1a1d2e", color: "#818cf8", border: "#3730a3" },
@@ -108,13 +110,6 @@ export default function JobTracker({ user }) {
     } catch (err) {
       console.error("Inline update failed:", err);
     }
-  };
-
-  const openNativePicker = (id) => {
-    const input = interviewDateInputRefs.current[id];
-    if (!input) return;
-    if (typeof input.showPicker === "function") input.showPicker();
-    else input.focus();
   };
 
   const saveInterviewDate = async (id, value) => {
@@ -268,7 +263,7 @@ export default function JobTracker({ user }) {
           {STATUSES.map(s => (
             <div key={s} style={{ background: "#161821", border: "1px solid #2d3148", borderRadius: 10, padding: "10px 16px", minWidth: 100 }}>
               <div style={{ fontSize: 20, fontWeight: 500, color: STATUS_STYLES[s].color }}>{counts[s]}</div>
-              <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{s}</div>
+              <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{getStatusLabel(s)}</div>
             </div>
           ))}
         </div>
@@ -299,28 +294,13 @@ export default function JobTracker({ user }) {
               <div>
                 <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>STATUS</label>
                 <select style={inputStyle} value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
-                  {STATUSES.map(s => <option key={s}>{s}</option>)}
+                  {STATUSES.map(s => <option key={s} value={s}>{getStatusLabel(s)}</option>)}
                 </select>
               </div>
               {form.status === "Interview" && (
                 <div>
                   <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>INTERVIEW DATE</label>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <input type="date" style={inputStyle} value={form.interviewDate} onChange={e => setForm({ ...form, interviewDate: e.target.value })} />
-                    <button
-                      type="button"
-                      className="icon-btn"
-                      style={{ marginLeft: 0 }}
-                      onClick={(e) => {
-                        const input = e.currentTarget.previousElementSibling;
-                        if (!input) return;
-                        if (typeof input.showPicker === "function") input.showPicker();
-                        else input.focus();
-                      }}
-                    >
-                      📅
-                    </button>
-                  </div>
+                  <input type="date" style={inputStyle} value={form.interviewDate} onChange={e => setForm({ ...form, interviewDate: e.target.value })} />
                 </div>
               )}
               <div>
@@ -347,7 +327,7 @@ export default function JobTracker({ user }) {
         {/* Filter */}
         <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
           {["All", ...STATUSES].map(s => (
-            <button key={s} className={`filter-btn ${filterStatus === s ? "active" : ""}`} onClick={() => setFilterStatus(s)}>{s}</button>
+            <button key={s} className={`filter-btn ${filterStatus === s ? "active" : ""}`} onClick={() => setFilterStatus(s)}>{getStatusLabel(s)}</button>
           ))}
         </div>
 
@@ -447,14 +427,11 @@ export default function JobTracker({ user }) {
                             }}
                             style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}
                           >
-                            {STATUSES.map(st => <option key={st} value={st}>{st}</option>)}
+                            {STATUSES.map(st => <option key={st} value={st}>{getStatusLabel(st)}</option>)}
                           </select>
                           {job.status === "Interview" && (
                             <div style={{ display: "flex", gap: 6 }}>
                               <input
-                                ref={(el) => {
-                                  interviewDateInputRefs.current[job.id] = el;
-                                }}
                                 type="date"
                                 value={editingInterviewDate === job.id ? interviewDateDraft : (job.interviewDate || "")}
                                 onFocus={() => {
@@ -488,18 +465,6 @@ export default function JobTracker({ user }) {
                                   outline: "none",
                                 }}
                               />
-                              <button
-                                type="button"
-                                className="icon-btn"
-                                style={{ marginLeft: 0, borderColor: "#92400e", color: "#fbbf24", padding: "4px 7px" }}
-                                onClick={() => {
-                                  setEditingInterviewDate(job.id);
-                                  setInterviewDateDraft(job.interviewDate || "");
-                                  openNativePicker(job.id);
-                                }}
-                              >
-                                📅
-                              </button>
                             </div>
                           )}
                         </div>
