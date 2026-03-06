@@ -35,6 +35,8 @@ export default function JobBoards({ user, showForm, setShowForm }) {
   const [editId, setEditId] = useState(null);
   const [editName, setEditName] = useState("");
   const [editUrl, setEditUrl] = useState("");
+  const [editingScoutedId, setEditingScoutedId] = useState(null);
+  const [scoutedDraft, setScoutedDraft] = useState("");
   const [addError, setAddError] = useState("");
   const seededRef = useRef(false);
 
@@ -101,6 +103,19 @@ export default function JobBoards({ user, showForm, setShowForm }) {
     await deleteDoc(doc(db, "users", user.uid, "jobboards", id));
   };
 
+  const saveLastScouted = async (id, date) => {
+    await updateDoc(doc(db, "users", user.uid, "jobboards", id), { lastScouted: date });
+    setEditingScoutedId(null);
+  };
+
+  const formatScouted = (date) => {
+    if (!date) return null;
+    const d = new Date(date + "T00:00:00");
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  };
+
+  const today = () => new Date().toISOString().split("T")[0];
+
   return (
     <div>
       {/* Sample banner */}
@@ -119,15 +134,16 @@ export default function JobBoards({ user, showForm, setShowForm }) {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid #2d3148" }}>
-                <th style={{ padding: "12px 20px", textAlign: "left", fontSize: 11, fontWeight: 500, letterSpacing: "0.05em", color: "#64748b", width: 260 }}>BOARD NAME</th>
+                <th style={{ padding: "12px 20px", textAlign: "left", fontSize: 11, fontWeight: 500, letterSpacing: "0.05em", color: "#64748b", width: 220 }}>BOARD NAME</th>
                 <th style={{ padding: "12px 20px", textAlign: "left", fontSize: 11, fontWeight: 500, letterSpacing: "0.05em", color: "#64748b" }}>URL</th>
+                <th style={{ padding: "12px 20px", textAlign: "left", fontSize: 11, fontWeight: 500, letterSpacing: "0.05em", color: "#64748b", width: 170 }}>LAST SCOUTED</th>
                 <th style={{ padding: "12px 20px", width: 90 }} />
               </tr>
             </thead>
             <tbody>
               {boards.length === 0 && (
                 <tr>
-                  <td colSpan={3} style={{ padding: 40, textAlign: "center", color: "#64748b", fontSize: 13 }}>
+                  <td colSpan={4} style={{ padding: 40, textAlign: "center", color: "#64748b", fontSize: 13 }}>
                     No job boards yet. Use the button below to add one.
                   </td>
                 </tr>
@@ -168,6 +184,38 @@ export default function JobBoards({ user, showForm, setShowForm }) {
                       </a>
                     ) : (
                       <span style={{ color: "#2d3148", fontSize: 13 }}>—</span>
+                    )}
+                  </td>
+                  <td style={{ padding: "10px 20px" }}>
+                    {editingScoutedId === board.id ? (
+                      <input
+                        autoFocus
+                        type="date"
+                        style={{ ...inputStyle, padding: "5px 8px", fontSize: 12, width: "auto" }}
+                        value={scoutedDraft}
+                        onChange={e => setScoutedDraft(e.target.value)}
+                        onBlur={() => { if (scoutedDraft) saveLastScouted(board.id, scoutedDraft); else setEditingScoutedId(null); }}
+                        onKeyDown={e => { if (e.key === "Enter") saveLastScouted(board.id, scoutedDraft); if (e.key === "Escape") setEditingScoutedId(null); }}
+                      />
+                    ) : (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span
+                          onClick={() => { setEditingScoutedId(board.id); setScoutedDraft(board.lastScouted || today()); }}
+                          style={{ fontSize: 13, color: board.lastScouted ? "#94a3b8" : "#2d3148", cursor: "pointer" }}
+                          title="Click to change date"
+                        >
+                          {board.lastScouted ? formatScouted(board.lastScouted) : "—"}
+                        </span>
+                        <button
+                          onClick={() => saveLastScouted(board.id, today())}
+                          title="Mark as today"
+                          style={{ background: "none", border: "1px solid #2d3148", color: "#64748b", cursor: "pointer", fontSize: 10, padding: "2px 7px", borderRadius: 4, fontFamily: "inherit", whiteSpace: "nowrap" }}
+                          onMouseEnter={e => { e.currentTarget.style.borderColor = "#6366f1"; e.currentTarget.style.color = "#818cf8"; }}
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = "#2d3148"; e.currentTarget.style.color = "#64748b"; }}
+                        >
+                          Today
+                        </button>
+                      </div>
                     )}
                   </td>
                   <td style={{ padding: "14px 20px", textAlign: "right", whiteSpace: "nowrap" }}>
