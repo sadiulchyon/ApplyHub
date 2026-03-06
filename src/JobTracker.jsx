@@ -358,7 +358,7 @@ export default function JobTracker({ user }) {
                 )}
                 {paginatedApplications.map((job, i) => {
                   const s = STATUS_STYLES[job.status];
-                  const isLate = job.deadline && new Date(job.deadline) < new Date() && job.status !== "Offer" && job.status !== "Rejected";
+                  const isLate = job.deadline && new Date(job.deadline) < new Date() && job.status === "Bookmarked";
                   return (
                     <tr key={job.id} className="row-hover" style={{ borderBottom: i < paginatedApplications.length - 1 ? "1px solid #1e2235" : "none", transition: "background 0.15s" }}>
                       <td style={{ padding: "14px 16px", overflow: "hidden" }}>
