@@ -25,10 +25,10 @@ const emptyForm = { position: "", advertiser: "", url: "", deadline: "", status:
 const COLS = [
   { key: "position",   label: "Position" },
   { key: "advertiser", label: "Advertiser" },
-  { key: "comments",   label: "Comments" },
   { key: "excitement", label: "Excitement" },
   { key: "deadline",   label: "Deadline" },
   { key: "status",     label: "Status" },
+  { key: "comments",   label: "Comments" },
   { key: "actions",    label: "", sortable: false },
 ];
 
@@ -352,24 +352,6 @@ export default function JobTracker({ user }) {
                       <td style={{ padding: "14px 16px", fontSize: 13, color: "#94a3b8", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
                         {job.advertiser || <span style={{ color: "#2d3148" }}>—</span>}
                       </td>
-                      <td style={{ padding: "10px 16px", overflow: "hidden" }}>
-                        {editingComments === job.id ? (
-                          <textarea
-                            autoFocus
-                            className="comment-textarea"
-                            value={commentDraft}
-                            onChange={e => setCommentDraft(e.target.value)}
-                            onBlur={() => { updateField(job.id, "comments", commentDraft); setEditingComments(null); }}
-                            onKeyDown={e => { if (e.key === "Escape") setEditingComments(null); }}
-                          />
-                        ) : (
-                          <div className="comment-cell" onClick={() => { setEditingComments(job.id); setCommentDraft(job.comments || ""); }}>
-                            {job.comments
-                              ? <span style={{ fontSize: 12, color: "#94a3b8", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{job.comments}</span>
-                              : <span style={{ fontSize: 12, color: "#2d3148" }}>Click to add…</span>}
-                          </div>
-                        )}
-                      </td>
                       <td style={{ padding: "14px 16px", whiteSpace: "nowrap" }}>
                         <Stars value={job.excitement || 0} onChange={v => updateField(job.id, "excitement", v)} size={16} />
                       </td>
@@ -436,6 +418,24 @@ export default function JobTracker({ user }) {
                             </div>
                           )}
                         </div>
+                      </td>
+                      <td style={{ padding: "10px 16px", overflow: "hidden" }}>
+                        {editingComments === job.id ? (
+                          <textarea
+                            autoFocus
+                            className="comment-textarea"
+                            value={commentDraft}
+                            onChange={e => setCommentDraft(e.target.value)}
+                            onBlur={() => { updateField(job.id, "comments", commentDraft); setEditingComments(null); }}
+                            onKeyDown={e => { if (e.key === "Escape") setEditingComments(null); }}
+                          />
+                        ) : (
+                          <div className="comment-cell" onClick={() => { setEditingComments(job.id); setCommentDraft(job.comments || ""); }}>
+                            {job.comments
+                              ? <span style={{ fontSize: 12, color: "#94a3b8", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{job.comments}</span>
+                              : <span style={{ fontSize: 12, color: "#2d3148" }}>Click to add…</span>}
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: "14px 16px", textAlign: "right", whiteSpace: "nowrap" }}>
                         <button title="Edit" className="icon-btn" onClick={() => handleEdit(job)}>
