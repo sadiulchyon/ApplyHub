@@ -73,9 +73,12 @@ export default function JobTracker({ user }) {
   const [colWidths, setColWidths] = useState(DEFAULT_WIDTHS);
   const [editingComments, setEditingComments] = useState(null);
   const [commentDraft, setCommentDraft] = useState("");
+  const [editingInterviewDate, setEditingInterviewDate] = useState(null);
+  const [interviewDateDraft, setInterviewDateDraft] = useState("");
   const [sortCol, setSortCol] = useState("deadline");
   const [sortDir, setSortDir] = useState("asc");
   const resizeRef = useRef(null);
+  const interviewDateInputRefs = useRef({});
   const seededRef = useRef(false);
 
   const startResize = (e, key) => {
@@ -105,6 +108,17 @@ export default function JobTracker({ user }) {
     } catch (err) {
       console.error("Inline update failed:", err);
     }
+  };
+
+  const openNativePicker = (id) => {
+    const input = interviewDateInputRefs.current[id];
+    if (!input) return;
+    if (typeof input.showPicker === "function") input.showPicker();
+    else input.focus();
+  };
+
+  const saveInterviewDate = async (id, value) => {
+    await updateField(id, "interviewDate", value || "");
   };
 
   // Reference to this user's jobs collection
@@ -291,7 +305,22 @@ export default function JobTracker({ user }) {
               {form.status === "Interview" && (
                 <div>
                   <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>INTERVIEW DATE</label>
-                  <input type="date" style={inputStyle} value={form.interviewDate} onChange={e => setForm({ ...form, interviewDate: e.target.value })} />
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input type="date" style={inputStyle} value={form.interviewDate} onChange={e => setForm({ ...form, interviewDate: e.target.value })} />
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      style={{ marginLeft: 0 }}
+                      onClick={(e) => {
+                        const input = e.currentTarget.previousElementSibling;
+                        if (!input) return;
+                        if (typeof input.showPicker === "function") input.showPicker();
+                        else input.focus();
+                      }}
+                    >
+                      📅
+                    </button>
+                  </div>
                 </div>
               )}
               <div>
@@ -421,22 +450,57 @@ export default function JobTracker({ user }) {
                             {STATUSES.map(st => <option key={st} value={st}>{st}</option>)}
                           </select>
                           {job.status === "Interview" && (
-                            <input
-                              type="date"
-                              value={job.interviewDate || ""}
-                              onChange={e => updateField(job.id, "interviewDate", e.target.value)}
-                              style={{
-                                width: "100%",
-                                background: "#0f1117",
-                                border: "1px solid #92400e",
-                                borderRadius: 6,
-                                padding: "5px 8px",
-                                color: "#fbbf24",
-                                fontFamily: "inherit",
-                                fontSize: 11,
-                                outline: "none",
-                              }}
-                            />
+                            <div style={{ display: "flex", gap: 6 }}>
+                              <input
+                                ref={(el) => {
+                                  interviewDateInputRefs.current[job.id] = el;
+                                }}
+                                type="date"
+                                value={editingInterviewDate === job.id ? interviewDateDraft : (job.interviewDate || "")}
+                                onFocus={() => {
+                                  setEditingInterviewDate(job.id);
+                                  setInterviewDateDraft(job.interviewDate || "");
+                                }}
+                                onChange={e => setInterviewDateDraft(e.target.value)}
+                                onBlur={async () => {
+                                  if (editingInterviewDate !== job.id) return;
+                                  await saveInterviewDate(job.id, interviewDateDraft);
+                                  setEditingInterviewDate(null);
+                                }}
+                                onKeyDown={async (e) => {
+                                  if (e.key === "Enter") {
+                                    e.currentTarget.blur();
+                                  }
+                                  if (e.key === "Escape") {
+                                    setEditingInterviewDate(null);
+                                    setInterviewDateDraft(job.interviewDate || "");
+                                  }
+                                }}
+                                style={{
+                                  width: "100%",
+                                  background: "#0f1117",
+                                  border: "1px solid #92400e",
+                                  borderRadius: 6,
+                                  padding: "5px 8px",
+                                  color: "#fbbf24",
+                                  fontFamily: "inherit",
+                                  fontSize: 11,
+                                  outline: "none",
+                                }}
+                              />
+                              <button
+                                type="button"
+                                className="icon-btn"
+                                style={{ marginLeft: 0, borderColor: "#92400e", color: "#fbbf24", padding: "4px 7px" }}
+                                onClick={() => {
+                                  setEditingInterviewDate(job.id);
+                                  setInterviewDateDraft(job.interviewDate || "");
+                                  openNativePicker(job.id);
+                                }}
+                              >
+                                📅
+                              </button>
+                            </div>
                           )}
                         </div>
                       </td>
