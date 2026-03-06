@@ -103,52 +103,6 @@ export default function JobBoards({ user, showForm, setShowForm }) {
 
   return (
     <div>
-      {/* Add form */}
-      {showForm && <div style={{ background: "#161821", border: "1px solid #2d3148", borderRadius: 12, padding: 20, marginBottom: 24 }}>
-        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12, letterSpacing: "0.05em" }}>ADD JOB BOARD</div>
-        <div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>
-          <div style={{ flex: "0 0 220px" }}>
-            <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>BOARD NAME *</label>
-            <input
-              style={inputStyle}
-              placeholder="e.g. HigherEdJobs"
-              value={newName}
-              onChange={e => setNewName(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleAdd()}
-            />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>URL</label>
-            <input
-              style={inputStyle}
-              placeholder="https://..."
-              value={newUrl}
-              onChange={e => setNewUrl(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleAdd()}
-            />
-          </div>
-          <button
-            className="btn-primary"
-            onClick={handleAdd}
-            style={{ whiteSpace: "nowrap", flexShrink: 0 }}
-          >
-            + Add Board
-          </button>
-          <button
-            className="btn-ghost"
-            onClick={() => { setShowForm(false); setNewName(""); setNewUrl(""); setAddError(""); }}
-            style={{ whiteSpace: "nowrap", flexShrink: 0 }}
-          >
-            Cancel
-          </button>
-        </div>
-        {addError && (
-          <div style={{ marginTop: 12, padding: "8px 12px", background: "#2a0f14", border: "1px solid #9f1239", borderRadius: 6, color: "#fb7185", fontSize: 12 }}>
-            {addError}
-          </div>
-        )}
-      </div>}
-
       {/* Sample banner */}
       {hasSamples && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#1a1d2e", border: "1px solid #3730a3", borderRadius: 8, padding: "10px 16px", marginBottom: 16, gap: 12 }}>
@@ -174,7 +128,7 @@ export default function JobBoards({ user, showForm, setShowForm }) {
               {boards.length === 0 && (
                 <tr>
                   <td colSpan={3} style={{ padding: 40, textAlign: "center", color: "#64748b", fontSize: 13 }}>
-                    No job boards yet. Add one above.
+                    No job boards yet. Use the button below to add one.
                   </td>
                 </tr>
               )}
@@ -236,9 +190,70 @@ export default function JobBoards({ user, showForm, setShowForm }) {
                 </tr>
               ))}
             </tbody>
+            {!showForm && (
+              <tfoot>
+                <tr>
+                  <td colSpan={3} style={{ borderTop: "1px solid #1e2235" }}>
+                    <button
+                      onClick={() => setShowForm(true)}
+                      style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", gap: 6, padding: "10px 20px", fontFamily: "inherit", width: "100%" }}
+                      onMouseEnter={e => e.currentTarget.style.color = "#e2e8f0"}
+                      onMouseLeave={e => e.currentTarget.style.color = "#64748b"}
+                    >
+                      <span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add Board
+                    </button>
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         )}
       </div>
+
+      {/* Add form */}
+      {showForm && <div style={{ background: "#161821", border: "1px solid #2d3148", borderRadius: 12, padding: 20, marginTop: 16 }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>
+          <div style={{ flex: "0 0 220px" }}>
+            <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>BOARD NAME *</label>
+            <input
+              style={inputStyle}
+              placeholder="e.g. HigherEdJobs"
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleAdd()}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: 11, color: "#64748b", display: "block", marginBottom: 6 }}>URL</label>
+            <input
+              style={inputStyle}
+              placeholder="https://..."
+              value={newUrl}
+              onChange={e => setNewUrl(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleAdd()}
+            />
+          </div>
+          <button
+            className="btn-primary"
+            onClick={handleAdd}
+            style={{ whiteSpace: "nowrap", flexShrink: 0 }}
+          >
+            + Add Board
+          </button>
+          <button
+            className="btn-ghost"
+            onClick={() => { setShowForm(false); setNewName(""); setNewUrl(""); setAddError(""); }}
+            style={{ whiteSpace: "nowrap", flexShrink: 0 }}
+          >
+            Cancel
+          </button>
+        </div>
+        {addError && (
+          <div style={{ marginTop: 12, padding: "8px 12px", background: "#2a0f14", border: "1px solid #9f1239", borderRadius: 6, color: "#fb7185", fontSize: 12 }}>
+            {addError}
+          </div>
+        )}
+      </div>}
     </div>
   );
 }
