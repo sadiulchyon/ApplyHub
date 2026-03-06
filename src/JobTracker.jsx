@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { auth, db } from "./firebase";
 import { signOut } from "firebase/auth";
+import JobBoards from "./JobBoards";
 import {
   collection, addDoc, updateDoc, deleteDoc,
   doc, onSnapshot, query, orderBy, serverTimestamp,
@@ -79,6 +80,7 @@ export default function JobTracker({ user }) {
   const [interviewDateDraft, setInterviewDateDraft] = useState("");
   const [sortCol, setSortCol] = useState("deadline");
   const [sortDir, setSortDir] = useState("asc");
+  const [view, setView] = useState("applications");
   const resizeRef = useRef(null);
   const interviewDateInputRefs = useRef({});
   const seededRef = useRef(false);
@@ -252,12 +254,32 @@ export default function JobTracker({ user }) {
             <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 32, fontWeight: 800, letterSpacing: "-1px", color: "#fff" }}>Job Tracker</div>
             <div style={{ color: "#64748b", fontSize: 12, marginTop: 4 }}>{user.email}</div>
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            {!showForm && <button className="btn-primary" onClick={() => setShowForm(true)}>+ Add Application</button>}
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            {/* Tab switcher */}
+            <div style={{ display: "flex", gap: 6, background: "#161821", border: "1px solid #2d3148", borderRadius: 24, padding: "4px 6px" }}>
+              <button
+                className={`filter-btn ${view === "applications" ? "active" : ""}`}
+                onClick={() => setView("applications")}
+              >
+                Applications
+              </button>
+              <button
+                className={`filter-btn ${view === "boards" ? "active" : ""}`}
+                onClick={() => setView("boards")}
+              >
+                Job Boards
+              </button>
+            </div>
+            {view === "applications" && !showForm && (
+              <button className="btn-primary" onClick={() => setShowForm(true)}>+ Add Application</button>
+            )}
             <button className="btn-ghost" onClick={() => signOut(auth)}>Sign out</button>
           </div>
         </div>
 
+        {view === "boards" && <JobBoards user={user} />}
+
+        {view === "applications" && <>
         {/* Stats */}
         <div style={{ display: "flex", gap: 12, marginBottom: 28, flexWrap: "wrap" }}>
           {STATUSES.map(s => (
@@ -484,6 +506,7 @@ export default function JobTracker({ user }) {
             </table>
           )}
         </div>
+        </>}
       </div>
     </div>
   );
