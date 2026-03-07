@@ -5,7 +5,7 @@ import { signOut } from "firebase/auth";
 import JobBoards from "./JobBoards";
 import {
   collection, addDoc, updateDoc, deleteDoc,
-  doc, onSnapshot, query, orderBy, serverTimestamp,
+  doc, onSnapshot, query, orderBy, serverTimestamp, setDoc,
 } from "firebase/firestore";
 
 const STATUSES = ["Bookmarked", "Applied", "Interview", "Offer", "Rejected"];
@@ -34,6 +34,14 @@ const COLS = [
 
 const DEFAULT_WIDTHS = { position: 190, advertiser: 150, comments: 210, excitement: 108, deadline: 130, status: 170, actions: 80 };
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
+
+const formatDuration = (seconds) => {
+  const safeSeconds = Math.max(0, seconds);
+  const hours = Math.floor(safeSeconds / 3600).toString().padStart(2, "0");
+  const minutes = Math.floor((safeSeconds % 3600) / 60).toString().padStart(2, "0");
+  const secs = Math.floor(safeSeconds % 60).toString().padStart(2, "0");
+  return `${hours}:${minutes}:${secs}`;
+};
 
 function Stars({ value, onChange, size = 22 }) {
   const [hovered, setHovered] = useState(null);
@@ -85,9 +93,14 @@ export default function JobTracker({ user }) {
   const [applicationsPage, setApplicationsPage] = useState(1);
   const [applicationsPageSize, setApplicationsPageSize] = useState(10);
   const [showBoardForm, setShowBoardForm] = useState(false);
+  const [dailyTrackedSeconds, setDailyTrackedSeconds] = useState(0);
+  const [sessionSeconds, setSessionSeconds] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
   const resizeRef = useRef(null);
   const interviewDateInputRefs = useRef({});
   const seededRef = useRef(false);
+  const todayKey = new Date().toISOString().split("T")[0];
+  const timerRef = doc(db, "users", user.uid, "timeLogs", todayKey);
 
   const startResize = (e, key) => {
     e.preventDefault();
@@ -148,6 +161,54 @@ export default function JobTracker({ user }) {
     });
     return () => unsub();
   }, [user.uid]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(timerRef, (snap) => {
+      const totalSeconds = snap.exists() ? Number(snap.data()?.totalSeconds || 0) : 0;
+      setDailyTrackedSeconds(Number.isFinite(totalSeconds) ? totalSeconds : 0);
+    });
+    return () => unsub();
+  }, [timerRef]);
+
+  useEffect(() => {
+    if (!isTimerRunning) return undefined;
+    const intervalId = setInterval(() => {
+      setSessionSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(intervalId);
+  }, [isTimerRunning]);
+
+  const persistSession = async () => {
+    if (sessionSeconds <= 0) return;
+    const newTotal = dailyTrackedSeconds + sessionSeconds;
+    await setDoc(timerRef, {
+      date: todayKey,
+      totalSeconds: newTotal,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    setDailyTrackedSeconds(newTotal);
+    setSessionSeconds(0);
+  };
+
+  const handleTimerToggle = async () => {
+    if (isTimerRunning) {
+      setIsTimerRunning(false);
+      await persistSession();
+      return;
+    }
+    setIsTimerRunning(true);
+  };
+
+  const resetTodayTimer = async () => {
+    setIsTimerRunning(false);
+    setSessionSeconds(0);
+    setDailyTrackedSeconds(0);
+    await setDoc(timerRef, {
+      date: todayKey,
+      totalSeconds: 0,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+  };
 
   const hasSamples = jobs.some(j => j.isSample);
 
@@ -296,6 +357,18 @@ export default function JobTracker({ user }) {
         {view === "applications" && <>
         {/* Stats / Filter — click a card to filter */}
         <div style={{ display: "flex", gap: 12, marginBottom: 28, flexWrap: "wrap" }}>
+          <div style={{ background: "#161821", border: "1px solid #2d3148", borderRadius: 10, padding: "10px 16px", minWidth: 220 }}>
+            <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>Daily Job Search Timer</div>
+            <div style={{ fontSize: 22, fontWeight: 600, color: "#f8fafc", letterSpacing: "0.02em" }}>
+              {formatDuration(dailyTrackedSeconds + sessionSeconds)}
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+              <button className="btn-ghost" onClick={handleTimerToggle} style={{ borderColor: isTimerRunning ? "#166534" : "#3730a3", color: isTimerRunning ? "#4ade80" : "#818cf8" }}>
+                {isTimerRunning ? "Pause & Save" : "Start"}
+              </button>
+              <button className="btn-ghost" onClick={resetTodayTimer}>Reset Today</button>
+            </div>
+          </div>
           <div
             onClick={() => setFilterStatus("All")}
             style={{ background: "#161821", border: `1px solid ${filterStatus === "All" ? "#6366f1" : "#2d3148"}`, borderRadius: 10, padding: "10px 16px", minWidth: 100, cursor: "pointer", transition: "border-color 0.2s" }}
