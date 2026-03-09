@@ -102,6 +102,8 @@ export default function JobTracker({ user }) {
   const [runningSinceMs, setRunningSinceMs] = useState(null);
   const [timerNowMs, setTimerNowMs] = useState(Date.now());
   const [timeHistory, setTimeHistory] = useState([]);
+  const [timerError, setTimerError] = useState("");
+  const [timerSaving, setTimerSaving] = useState(false);
   const resizeRef = useRef(null);
   const interviewDateInputRefs = useRef({});
   const seededRef = useRef(false);
@@ -181,6 +183,10 @@ export default function JobTracker({ user }) {
       const startedMs = Number(data?.runningSinceMs || 0);
       setDailyTrackedSeconds(Number.isFinite(totalSeconds) ? totalSeconds : 0);
       setRunningSinceMs(startedMs > 0 ? startedMs : null);
+      setTimerError("");
+    }, (err) => {
+      console.error("Timer listener failed:", err);
+      setTimerError(err.message || "Could not load timer data.");
     });
     return () => unsub();
   }, [timerRef]);
@@ -189,6 +195,9 @@ export default function JobTracker({ user }) {
     const historyQuery = query(collection(db, "users", user.uid, "timeLogs"), orderBy("date", "desc"), limit(7));
     const unsub = onSnapshot(historyQuery, (snap) => {
       setTimeHistory(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    }, (err) => {
+      console.error("Timer history listener failed:", err);
+      setTimerError(err.message || "Could not load timer history.");
     });
     return () => unsub();
   }, [user.uid]);
@@ -205,40 +214,70 @@ export default function JobTracker({ user }) {
   };
 
   const handleTimerToggle = async () => {
-    if (isTimerRunning) {
-      const elapsedSeconds = getRunningSeconds();
-      setRunningSinceMs(null);
-      setTimerNowMs(Date.now());
+    const previousRunningSince = runningSinceMs;
+    const previousNow = timerNowMs;
+    setTimerSaving(true);
+    setTimerError("");
+
+    try {
+      if (isTimerRunning) {
+        const elapsedSeconds = getRunningSeconds();
+        const newTotal = dailyTrackedSeconds + elapsedSeconds;
+        setRunningSinceMs(null);
+        setTimerNowMs(Date.now());
+        await setDoc(timerRef, {
+          date: todayKey,
+          totalSeconds: newTotal,
+          runningSinceMs: null,
+          updatedAt: serverTimestamp(),
+        }, { merge: true });
+        setDailyTrackedSeconds(newTotal);
+        return;
+      }
+
+      const startedAtMs = Date.now();
+      setRunningSinceMs(startedAtMs);
+      setTimerNowMs(startedAtMs);
       await setDoc(timerRef, {
         date: todayKey,
-        totalSeconds: dailyTrackedSeconds + elapsedSeconds,
-        runningSinceMs: null,
+        totalSeconds: dailyTrackedSeconds,
+        runningSinceMs: startedAtMs,
         updatedAt: serverTimestamp(),
       }, { merge: true });
-      return;
+    } catch (err) {
+      console.error("Timer toggle failed:", err);
+      setRunningSinceMs(previousRunningSince);
+      setTimerNowMs(previousNow);
+      setTimerError(err.message || "Could not save timer changes.");
+    } finally {
+      setTimerSaving(false);
     }
-
-    const startedAtMs = Date.now();
-    setRunningSinceMs(startedAtMs);
-    setTimerNowMs(startedAtMs);
-    await setDoc(timerRef, {
-      date: todayKey,
-      totalSeconds: dailyTrackedSeconds,
-      runningSinceMs: startedAtMs,
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
   };
 
   const resetTodayTimer = async () => {
-    await setDoc(timerRef, {
-      date: todayKey,
-      totalSeconds: 0,
-      runningSinceMs: null,
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
+    const previousState = { dailyTrackedSeconds, runningSinceMs, timerNowMs };
+    setTimerSaving(true);
+    setTimerError("");
     setDailyTrackedSeconds(0);
     setRunningSinceMs(null);
     setTimerNowMs(Date.now());
+
+    try {
+      await setDoc(timerRef, {
+        date: todayKey,
+        totalSeconds: 0,
+        runningSinceMs: null,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    } catch (err) {
+      console.error("Timer reset failed:", err);
+      setDailyTrackedSeconds(previousState.dailyTrackedSeconds);
+      setRunningSinceMs(previousState.runningSinceMs);
+      setTimerNowMs(previousState.timerNowMs);
+      setTimerError(err.message || "Could not reset today's timer.");
+    } finally {
+      setTimerSaving(false);
+    }
   };
 
   const displayTrackedSeconds = dailyTrackedSeconds + (isTimerRunning ? Math.max(0, Math.floor((timerNowMs - runningSinceMs) / 1000)) : 0);
@@ -396,11 +435,14 @@ export default function JobTracker({ user }) {
               {formatDuration(displayTrackedSeconds)}
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-              <button className="btn-ghost" onClick={handleTimerToggle} style={{ borderColor: isTimerRunning ? "#166534" : "#3730a3", color: isTimerRunning ? "#4ade80" : "#818cf8" }}>
+              <button className="btn-ghost" disabled={timerSaving} onClick={handleTimerToggle} style={{ borderColor: isTimerRunning ? "#166534" : "#3730a3", color: isTimerRunning ? "#4ade80" : "#818cf8", opacity: timerSaving ? 0.6 : 1 }}>
                 {isTimerRunning ? "Pause & Save" : "Start"}
               </button>
-              <button className="btn-ghost" onClick={resetTodayTimer}>Reset Today</button>
+              <button className="btn-ghost" disabled={timerSaving} onClick={resetTodayTimer} style={{ opacity: timerSaving ? 0.6 : 1 }}>Reset Today</button>
             </div>
+            {timerError && (
+              <div style={{ marginTop: 8, fontSize: 11, color: "#fb7185" }}>{timerError}</div>
+            )}
           </div>
           <div style={{ background: "#161821", border: "1px solid #2d3148", borderRadius: 10, padding: "10px 16px", minWidth: 220 }}>
             <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>Last 7 Days</div>
