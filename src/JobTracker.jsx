@@ -104,6 +104,7 @@ export default function JobTracker({ user }) {
   const [timeHistory, setTimeHistory] = useState([]);
   const [timerError, setTimerError] = useState("");
   const [timerSaving, setTimerSaving] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const resizeRef = useRef(null);
   const interviewDateInputRefs = useRef({});
   const seededRef = useRef(false);
@@ -192,7 +193,7 @@ export default function JobTracker({ user }) {
   }, [timerRef]);
 
   useEffect(() => {
-    const historyQuery = query(collection(db, "users", user.uid, "timeLogs"), orderBy("date", "desc"), limit(7));
+    const historyQuery = query(collection(db, "users", user.uid, "timeLogs"), orderBy("date", "desc"), limit(30));
     const unsub = onSnapshot(historyQuery, (snap) => {
       setTimeHistory(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     }, (err) => {
@@ -376,6 +377,8 @@ export default function JobTracker({ user }) {
         .btn-primary:hover { background: #4f46e5; }
         .btn-ghost { background: transparent; color: #94a3b8; border: 1px solid #2d3148; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 12px; transition: all 0.2s; }
         .btn-ghost:hover { color: #e2e8f0; border-color: #6366f1; }
+        @keyframes timerPulse { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(74,222,128,0.5); } 50% { opacity: 0.7; box-shadow: 0 0 0 5px rgba(74,222,128,0); } }
+        .timer-pulse { animation: timerPulse 1.5s ease-in-out infinite; }
         .btn-danger { background: transparent; color: #f87171; border: none; cursor: pointer; font-family: inherit; font-size: 12px; padding: 4px 8px; border-radius: 4px; }
         .btn-danger:hover { background: #2d1515; }
         .filter-btn { background: transparent; border: 1px solid #2d3148; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-family: inherit; font-size: 12px; color: #94a3b8; transition: all 0.2s; }
@@ -427,38 +430,8 @@ export default function JobTracker({ user }) {
         {view === "boards" && <JobBoards user={user} showForm={showBoardForm} setShowForm={setShowBoardForm} />}
 
         {view === "applications" && <>
-        {/* Stats / Filter — click a card to filter */}
-        <div style={{ display: "flex", gap: 12, marginBottom: 28, flexWrap: "wrap" }}>
-          <div style={{ background: "#161821", border: "1px solid #2d3148", borderRadius: 10, padding: "10px 16px", minWidth: 220 }}>
-            <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>Daily Job Search Timer</div>
-            <div style={{ fontSize: 22, fontWeight: 600, color: "#f8fafc", letterSpacing: "0.02em" }}>
-              {formatDuration(displayTrackedSeconds)}
-            </div>
-            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-              <button className="btn-ghost" disabled={timerSaving} onClick={handleTimerToggle} style={{ borderColor: isTimerRunning ? "#166534" : "#3730a3", color: isTimerRunning ? "#4ade80" : "#818cf8", opacity: timerSaving ? 0.6 : 1 }}>
-                {isTimerRunning ? "Pause & Save" : "Start"}
-              </button>
-              <button className="btn-ghost" disabled={timerSaving} onClick={resetTodayTimer} style={{ opacity: timerSaving ? 0.6 : 1 }}>Reset Today</button>
-            </div>
-            {timerError && (
-              <div style={{ marginTop: 8, fontSize: 11, color: "#fb7185" }}>{timerError}</div>
-            )}
-          </div>
-          <div style={{ background: "#161821", border: "1px solid #2d3148", borderRadius: 10, padding: "10px 16px", minWidth: 220 }}>
-            <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>Last 7 Days</div>
-            {timeHistory.length === 0 ? (
-              <div style={{ color: "#64748b", fontSize: 12 }}>No tracking data yet.</div>
-            ) : (
-              <div style={{ display: "grid", gap: 6 }}>
-                {timeHistory.map((entry) => (
-                  <div key={entry.id} style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 12 }}>
-                    <span style={{ color: "#94a3b8" }}>{formatDayLabel(entry.date || entry.id)}</span>
-                    <span style={{ color: "#e2e8f0", fontWeight: 500 }}>{formatDuration(entry.totalSeconds || 0)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+        {/* Status filter cards */}
+        <div style={{ display: "flex", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
           <div
             onClick={() => setFilterStatus("All")}
             style={{ background: "#161821", border: `1px solid ${filterStatus === "All" ? "#6366f1" : "#2d3148"}`, borderRadius: 10, padding: "10px 16px", minWidth: 100, cursor: "pointer", transition: "border-color 0.2s" }}
@@ -476,6 +449,94 @@ export default function JobTracker({ user }) {
               <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{getStatusLabel(s)}</div>
             </div>
           ))}
+        </div>
+
+        {/* Timer Panel */}
+        <div style={{ background: "#161821", border: `1px solid ${isTimerRunning ? "#1a3a2a" : "#2d3148"}`, borderRadius: 12, padding: "16px 22px", marginBottom: 28, transition: "border-color 0.4s" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+            {/* Clock */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              {isTimerRunning ? (
+                <span className="timer-pulse" style={{ width: 9, height: 9, borderRadius: "50%", background: "#4ade80", display: "inline-block", flexShrink: 0 }} />
+              ) : (
+                <span style={{ width: 9, height: 9, borderRadius: "50%", background: "#2d3148", display: "inline-block", flexShrink: 0 }} />
+              )}
+              <div>
+                <div style={{ fontSize: 10, color: "#64748b", letterSpacing: "0.1em", marginBottom: 4 }}>JOB SEARCH & APPLY TIMER</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                  <span style={{ fontSize: 32, fontWeight: 600, color: isTimerRunning ? "#f0fdf4" : "#f8fafc", letterSpacing: "0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1, transition: "color 0.4s" }}>
+                    {formatDuration(displayTrackedSeconds)}
+                  </span>
+                  <span style={{ fontSize: 11, color: "#64748b" }}>today</span>
+                </div>
+              </div>
+            </div>
+            {/* Controls */}
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <button
+                className="btn-ghost"
+                disabled={timerSaving}
+                onClick={handleTimerToggle}
+                style={{ borderColor: isTimerRunning ? "#166534" : "#3730a3", color: isTimerRunning ? "#4ade80" : "#818cf8", opacity: timerSaving ? 0.6 : 1, padding: "8px 18px", fontSize: 13 }}
+              >
+                {isTimerRunning ? "⏸ Pause" : "▶ Start"}
+              </button>
+              <button className="btn-ghost" disabled={timerSaving} onClick={resetTodayTimer} style={{ opacity: timerSaving ? 0.6 : 1, fontSize: 12 }}>
+                Reset
+              </button>
+            </div>
+            {/* Spacer */}
+            <div style={{ flex: 1 }} />
+            {/* History toggle */}
+            <button
+              onClick={() => setShowHistory(h => !h)}
+              style={{ background: "transparent", border: "none", color: showHistory ? "#94a3b8" : "#64748b", cursor: "pointer", fontSize: 12, fontFamily: "inherit", padding: "6px 10px", borderRadius: 6, transition: "color 0.2s", display: "flex", alignItems: "center", gap: 5 }}
+              onMouseEnter={e => e.currentTarget.style.color = "#e2e8f0"}
+              onMouseLeave={e => e.currentTarget.style.color = showHistory ? "#94a3b8" : "#64748b"}
+            >
+              History {showHistory ? "▴" : "▾"}
+            </button>
+          </div>
+          {timerError && <div style={{ marginTop: 8, fontSize: 11, color: "#fb7185" }}>{timerError}</div>}
+
+          {/* Collapsible history */}
+          {showHistory && (() => {
+            const now = new Date();
+            const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 6);
+            const weekSecs = timeHistory
+              .filter(e => new Date(`${e.date || e.id}T00:00:00`) >= weekAgo)
+              .reduce((sum, e) => sum + (e.totalSeconds || 0), 0);
+            const monthSecs = timeHistory
+              .filter(e => { const d = new Date(`${e.date || e.id}T00:00:00`); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); })
+              .reduce((sum, e) => sum + (e.totalSeconds || 0), 0);
+            const totalSecs = timeHistory.reduce((sum, e) => sum + (e.totalSeconds || 0), 0);
+            return (
+              <div style={{ marginTop: 16, borderTop: "1px solid #1e2235", paddingTop: 16 }}>
+                {/* Summary */}
+                <div style={{ display: "flex", gap: 32, marginBottom: 16, flexWrap: "wrap" }}>
+                  {[{ label: "This Week", value: formatDuration(weekSecs) }, { label: "This Month", value: formatDuration(monthSecs) }, { label: "Last 30 Days", value: formatDuration(totalSecs) }].map(({ label, value }) => (
+                    <div key={label}>
+                      <div style={{ fontSize: 10, color: "#64748b", letterSpacing: "0.08em", marginBottom: 5 }}>{label.toUpperCase()}</div>
+                      <div style={{ fontSize: 17, fontWeight: 500, color: "#c7d2fe", fontVariantNumeric: "tabular-nums" }}>{value}</div>
+                    </div>
+                  ))}
+                </div>
+                {/* Daily list */}
+                {timeHistory.length === 0 ? (
+                  <div style={{ color: "#64748b", fontSize: 12 }}>No tracking data yet.</div>
+                ) : (
+                  <div style={{ display: "grid", gap: 3, maxHeight: 180, overflowY: "auto" }}>
+                    {timeHistory.map((entry) => (
+                      <div key={entry.id} style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 12, padding: "3px 0", borderBottom: "1px solid #1a1d2e" }}>
+                        <span style={{ color: "#64748b" }}>{formatDayLabel(entry.date || entry.id)}</span>
+                        <span style={{ color: "#e2e8f0", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>{formatDuration(entry.totalSeconds || 0)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Sample banner */}
