@@ -1,5 +1,5 @@
 // src/JobTracker.jsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { auth, db } from "./firebase";
 import { signOut } from "firebase/auth";
 import JobBoards from "./JobBoards";
@@ -108,7 +108,7 @@ export default function JobTracker({ user }) {
   const interviewDateInputRefs = useRef({});
   const seededRef = useRef(false);
   const todayKey = new Date().toISOString().split("T")[0];
-  const timerRef = doc(db, "users", user.uid, "timeLogs", todayKey);
+  const timerRef = useMemo(() => doc(db, "users", user.uid, "timeLogs", todayKey), [user.uid, todayKey]);
   const isTimerRunning = Boolean(runningSinceMs);
 
   const startResize = (e, key) => {
