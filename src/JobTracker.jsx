@@ -99,7 +99,7 @@ export default function JobTracker({ user }) {
   const [applicationsPageSize, setApplicationsPageSize] = useState(10);
   const [showBoardForm, setShowBoardForm] = useState(false);
   const [dailyTrackedSeconds, setDailyTrackedSeconds] = useState(0);
-  const [runningStartedAtMs, setRunningStartedAtMs] = useState(null);
+  const [runningSinceMs, setRunningSinceMs] = useState(null);
   const [timerNowMs, setTimerNowMs] = useState(Date.now());
   const [timeHistory, setTimeHistory] = useState([]);
   const resizeRef = useRef(null);
@@ -107,7 +107,7 @@ export default function JobTracker({ user }) {
   const seededRef = useRef(false);
   const todayKey = new Date().toISOString().split("T")[0];
   const timerRef = doc(db, "users", user.uid, "timeLogs", todayKey);
-  const isTimerRunning = Boolean(runningStartedAtMs);
+  const isTimerRunning = Boolean(runningSinceMs);
 
   const startResize = (e, key) => {
     e.preventDefault();
@@ -173,14 +173,14 @@ export default function JobTracker({ user }) {
     const unsub = onSnapshot(timerRef, (snap) => {
       if (!snap.exists()) {
         setDailyTrackedSeconds(0);
-        setRunningStartedAtMs(null);
+        setRunningSinceMs(null);
         return;
       }
       const data = snap.data();
       const totalSeconds = Number(data?.totalSeconds || 0);
-      const startedAt = data?.runningStartedAt?.toDate?.() || null;
+      const startedMs = Number(data?.runningSinceMs || 0);
       setDailyTrackedSeconds(Number.isFinite(totalSeconds) ? totalSeconds : 0);
-      setRunningStartedAtMs(startedAt ? startedAt.getTime() : null);
+      setRunningSinceMs(startedMs > 0 ? startedMs : null);
     });
     return () => unsub();
   }, [timerRef]);
@@ -200,26 +200,31 @@ export default function JobTracker({ user }) {
   }, [isTimerRunning]);
 
   const getRunningSeconds = () => {
-    if (!runningStartedAtMs) return 0;
-    return Math.max(0, Math.floor((Date.now() - runningStartedAtMs) / 1000));
+    if (!runningSinceMs) return 0;
+    return Math.max(0, Math.floor((Date.now() - runningSinceMs) / 1000));
   };
 
   const handleTimerToggle = async () => {
     if (isTimerRunning) {
       const elapsedSeconds = getRunningSeconds();
+      setRunningSinceMs(null);
+      setTimerNowMs(Date.now());
       await setDoc(timerRef, {
         date: todayKey,
         totalSeconds: dailyTrackedSeconds + elapsedSeconds,
-        runningStartedAt: null,
+        runningSinceMs: null,
         updatedAt: serverTimestamp(),
       }, { merge: true });
       return;
     }
 
+    const startedAtMs = Date.now();
+    setRunningSinceMs(startedAtMs);
+    setTimerNowMs(startedAtMs);
     await setDoc(timerRef, {
       date: todayKey,
       totalSeconds: dailyTrackedSeconds,
-      runningStartedAt: serverTimestamp(),
+      runningSinceMs: startedAtMs,
       updatedAt: serverTimestamp(),
     }, { merge: true });
   };
@@ -228,15 +233,15 @@ export default function JobTracker({ user }) {
     await setDoc(timerRef, {
       date: todayKey,
       totalSeconds: 0,
-      runningStartedAt: null,
+      runningSinceMs: null,
       updatedAt: serverTimestamp(),
     }, { merge: true });
     setDailyTrackedSeconds(0);
-    setRunningStartedAtMs(null);
+    setRunningSinceMs(null);
     setTimerNowMs(Date.now());
   };
 
-  const displayTrackedSeconds = dailyTrackedSeconds + (isTimerRunning ? Math.max(0, Math.floor((timerNowMs - runningStartedAtMs) / 1000)) : 0);
+  const displayTrackedSeconds = dailyTrackedSeconds + (isTimerRunning ? Math.max(0, Math.floor((timerNowMs - runningSinceMs) / 1000)) : 0);
 
   const hasSamples = jobs.some(j => j.isSample);
 
