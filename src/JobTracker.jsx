@@ -8,7 +8,7 @@ import {
   doc, onSnapshot, query, orderBy, serverTimestamp, setDoc, limit,
 } from "firebase/firestore";
 
-const STATUSES = ["Bookmarked", "Applied", "Interview", "Offer", "Rejected"];
+const STATUSES = ["Bookmarked", "Applied", "Interview", "Offer", "Rejected", "Emailed", "Decided Not to Apply"];
 const STATUS_LABELS = { Bookmarked: "Planning to Apply" };
 const getStatusLabel = (status) => STATUS_LABELS[status] || status;
 
@@ -18,6 +18,8 @@ const STATUS_STYLES = {
   Interview:  { bg: "#2a1f0a", color: "#fbbf24", border: "#92400e" },
   Offer:      { bg: "#0a2a25", color: "#2dd4bf", border: "#134e4a" },
   Rejected:   { bg: "#2a0f14", color: "#fb7185", border: "#9f1239" },
+  Emailed:    { bg: "#0b1f2f", color: "#60a5fa", border: "#1d4ed8" },
+  "Decided Not to Apply": { bg: "#1f1726", color: "#c4b5fd", border: "#6d28d9" },
 };
 
 const emptyForm = { position: "", advertiser: "", url: "", deadline: "", status: "Bookmarked", interviewDate: "", excitement: 0, comments: "" };
